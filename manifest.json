@@ -1,0 +1,72 @@
+{
+  "manifest_version": 3,
+  "name": "Apoio Soluti",
+  "version": "5.0",
+  "description": "Gerenciador de macros, extrator de texto da tela e atalhos de AR para atendimento.",
+  "permissions": [
+    "storage",
+    "offscreen",
+    "scripting",
+    "contextMenus",
+    "alarms",
+    "tabs",
+    "cookies"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "src/common/macros.js",
+        "src/content/equipe.js",
+        "src/content/content.js",
+        "src/content/visualizador.js",
+        "src/content/apoio-soluti-extras.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://*.acsoluti.com.br/*"],
+      "js": ["src/content/gridlocalizar.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "commands": {
+    "extrair-texto": {
+      "suggested_key": {
+        "default": "Ctrl+M"
+      },
+      "description": "Extrair texto da tela"
+    },
+    "abrir-janela": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y"
+      },
+      "description": "Abrir o Apoio Soluti em uma janela separada"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}

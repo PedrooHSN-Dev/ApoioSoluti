@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<!--
+  Apoio Soluti v4 — ferramentas de atendimento do Suporte B2C.
+
+  Desenvolvido por Vitor Azevedo (v1 e v2).
+  Reescrito e mantido por Vinícius Zoccoli e Pedro H. S. Nascimento (v3 em diante).
+-->
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apoio Soluti</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="tema.js"></script>
+</head>
+<body>
+  <!--
+    A marca divide a linha com as abas. Sozinha ela ocupava 63px de um popup
+    de 580px para repetir o nome da extensao que o usuario acabou de clicar.
+  -->
+  <header class="topo">
+    <span class="marca">
+      <span class="marca-icone" aria-hidden="true">
+        <svg viewBox="0 0 100 100" width="16" height="16">
+          <path fill="currentColor" fill-rule="evenodd" d="M9.34 98.27C5.71 94.89 6.61 90.92 13.32 80.74C16.58 75.79 20.36 69.83 21.72 67.51C24.08 63.48 24.12 63.23 22.58 62.37C18.83 60.27 13.52 54.42 10.77 49.35C7.89 44.03 7.83 43.69 7.83 33.48C7.83 23.84 8.01 22.67 10.23 18.15C13.2 12.11 19.75 5.85 26.33 2.77L31.3 0.43 58.67 0.17C73.72 0.03 86.95 0.14 88.07 0.42C90.53 1.04 92.75 5.79 91.97 8.78C91.67 9.93 87.78 16.51 83.32 23.4C78.86 30.28 75.24 36.15 75.27 36.44C75.3 36.72 76.95 38.14 78.95 39.59C87.61 45.88 92.18 55.58 92.03 67.39C91.86 80.61 85.38 90.94 73.65 96.72L67.87 99.57 39.58 99.83C11.91 100.08 11.25 100.05 9.34 98.27ZM50.92 63.32C53.52 62.13 56.96 60.04 58.55 58.69C61.36 56.32 73.48 39.13 73.48 37.53C73.48 35.79 67.56 34.35 60.43 34.35C52.3 34.36 46.32 36.45 40.61 41.28C38.01 43.48 25.65 61.12 25.65 62.64C25.65 63.27 28.96 64.75 32.17 65.55C36.47 66.62 46.27 65.46 50.92 63.32Z" />
+        </svg>
+      </span>
+      <span class="marca-nome">Apoio Soluti</span>
+    </span>
+
+    <button
+      id="abrirJanelaBtn"
+      class="tema-btn"
+      type="button"
+      title="Abrir em uma janela separada (Ctrl+Shift+Y)"
+      aria-label="Abrir em uma janela separada"
+    >
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect x="3.2" y="4.2" width="10.6" height="9.4" rx="1.3" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M9.5 3h5.8a1.7 1.7 0 0 1 1.7 1.7v5.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M17 3l-6.6 6.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <button
+      id="temaBtn"
+      class="tema-btn"
+      type="button"
+      title="Alternar entre tema claro e escuro"
+      aria-label="Alternar entre tema claro e escuro"
+    >
+      <svg class="lua" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>
+      <svg class="sol" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <circle cx="10" cy="10" r="3.6" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M10 2.2v1.9M10 15.9v1.9M17.8 10h-1.9M4.1 10H2.2M15.5 4.5l-1.3 1.3M5.8 14.2l-1.3 1.3M15.5 15.5l-1.3-1.3M5.8 5.8 4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="corpo">
+    <nav
+      class="barra-lateral"
+      role="tablist"
+      aria-label="Ferramentas"
+      title="Ctrl+Tab / Ctrl+Shift+Tab troca de aba"
+    >
+      <button
+        id="barraToggleBtn"
+        class="barra-toggle"
+        type="button"
+        title="Expandir ou recolher o menu"
+        aria-label="Expandir ou recolher o menu"
+      >
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M3 5.5h14M3 10h14M3 14.5h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <div class="grupo-abas" data-label="Rápido">
+        <button class="aba ativa" data-aba="macros" role="tab" aria-selected="true" title="Macros">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <rect x="2.5" y="3.5" width="15" height="13" rx="1.4" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M5.6 7.2l2 1.9-2 1.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9.4 11h4.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Macros</span>
+        </button>
+        <button class="aba" data-aba="unificada" role="tab" aria-selected="false" title="Busca unificada">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <circle cx="7.2" cy="7.2" r="4.2" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M10.3 10.3 15 15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Busca unificada</span>
+        </button>
+        <button class="aba" data-aba="solicitacao" role="tab" aria-selected="false" title="Solicitação">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M6 2.5h6l3 3v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M12 2.5v3h3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M7.3 11h5.4M7.3 13.6h5.4M7.3 8.4h2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Solicitação</span>
+        </button>
+      </div>
+
+      <div class="grupo-abas" data-label="Ferramentas">
+        <button class="aba" data-aba="gestao" role="tab" aria-selected="false" title="Gestão+">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <rect x="2.6" y="4" width="14.8" height="12.5" rx="1.6" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M2.6 7.6h14.8" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M6 10.6h8M6 13.2h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span id="abaErroGestao" class="aba-badge-erro hidden" title="A última busca falhou"></span>
+            <span id="abaSessaoGestao" class="aba-badge-sessao" title="Sessão não verificada"></span>
+          </span>
+          <span class="aba-nome">Gestão+</span>
+        </button>
+        <button class="aba" data-aba="wings" role="tab" aria-selected="false" title="Wings">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M2.5 12.5 6.5 6l3.5 5.5L13.5 6l4 6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="10" cy="15" r="1.1" fill="currentColor"/>
+            </svg>
+            <span id="abaErroWings" class="aba-badge-erro hidden" title="A última busca falhou"></span>
+            <span id="abaSessaoWings" class="aba-badge-sessao" title="Sessão não verificada"></span>
+          </span>
+          <span class="aba-nome">Wings</span>
+        </button>
+        <button class="aba" data-aba="databricks" role="tab" aria-selected="false" title="Databricks">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M4 6a6 2 0 1 0 12 0 6 2 0 1 0-12 0zm0 4a6 2 0 1 0 12 0m-12 4a6 2 0 1 0 12 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span id="abaErroDatabricks" class="aba-badge-erro hidden" title="A última busca falhou"></span>
+          </span>
+          <span class="aba-nome">Databricks</span>
+        </button>
+        <button class="aba" data-aba="sdeal" role="tab" aria-selected="false" title="S.Deal">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M13.4 13.4 17 17" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span id="abaErroSdeal" class="aba-badge-erro hidden" title="A última busca falhou"></span>
+            <span id="abaSessaoSdeal" class="aba-badge-sessao" title="Sessão não verificada"></span>
+          </span>
+          <span class="aba-nome">S.Deal</span>
+        </button>
+        <button class="aba" data-aba="atender" role="tab" aria-selected="false" title="Lojas">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M10 17.5s5.5-4.8 5.5-9a5.5 5.5 0 1 0-11 0c0 4.2 5.5 9 5.5 9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+              <circle cx="10" cy="8.3" r="2" stroke="currentColor" stroke-width="1.4"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Lojas</span>
+        </button>
+        <button class="aba" data-aba="ocr" role="tab" aria-selected="false" title="Captura">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <rect x="2.6" y="2.6" width="14.8" height="14.8" rx="2.4" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M6.4 8.6h7.2M6.4 11.4h4.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Captura</span>
+        </button>
+      </div>
+    </nav>
+
+  <main class="container">
+
+    <!-- ABA MACROS -->
+    <section id="painel-macros" class="painel" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Macros</h2>
+        <div class="secao-acoes">
+          <span id="contador">0/0 comandos</span>
+          <button id="exportarMacrosBtn" class="link-btn" type="button">Exportar</button>
+          <button id="importarMacrosBtn" class="link-btn" type="button">Importar</button>
+          <input id="importarMacrosInput" type="file" accept="application/json" hidden>
+        </div>
+      </div>
+
+      <p id="avisoSync" class="ferramenta-aviso erro hidden">
+        Sem espaço para sincronizar: os macros estão salvos só neste
+        navegador.
+      </p>
+
+      <div class="barra">
+        <input
+          id="busca"
+          class="busca"
+          type="text"
+          placeholder="Buscar comando (ex: .ini)"
+          autocomplete="off"
+        >
+        <button id="novoBtn" class="primary">Criar</button>
+      </div>
+
+      <section id="formulario" class="formulario hidden">
+        <input type="hidden" id="macroId">
+
+        <label for="comando">Comando (ex: .ini)</label>
+        <input
+          id="comando"
+          type="text"
+          placeholder=".meucomando"
+          autocomplete="off"
+        >
+
+        <label for="resposta">Resultado</label>
+        <textarea
+          id="resposta"
+          placeholder="Texto que será inserido..."
+        ></textarea>
+
+        <div class="form-botoes">
+          <button id="salvarBtn" class="primary">Salvar</button>
+          <button id="cancelarBtn" class="secondary">Cancelar</button>
+        </div>
+      </section>
+
+      <section class="conteudo">
+        <ul id="lista" class="lista"></ul>
+
+        <div id="detalhe" class="detalhe vazio">
+          Selecione um comando para ver o resultado.
+        </div>
+      </section>
+    </section>
+
+    <!--
+      ABA BUSCA UNIFICADA
+      Digita o CPF/CNPJ uma vez e dispara nas três buscas que aceitam
+      documento (Gestão+, Wings, Databricks) ao mesmo tempo, reaproveitando
+      as funções de busca/cache/sessão/histórico de cada aba — essa aba só
+      preenche os três campos e chama as três funções em paralelo. O S.Deal
+      fica de fora porque busca por número de voucher, não por CPF/CNPJ.
+    -->
+    <section id="painel-unificada" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Busca unificada</h2>
+      </div>
+
+      <!-- Status de sessão do Gestão+ e do Wings (os dois que dependem de
+           login entre os três buscados aqui — Databricks não usa cookie
+           de sessão). Atualiza sozinho ao entrar na aba; "Fazer login"
+           só aparece quando a sessão está mesmo inativa. -->
+      <div id="sessoesUnificado" class="unificado-sessoes"></div>
+
+      <div class="ferramenta-linha">
+        <input
+          id="documentoUnificado"
+          type="text"
+          placeholder="CPF ou CNPJ"
+          autocomplete="off"
+        >
+        <button id="buscarUnificadoBtn" class="primary">Buscar em tudo</button>
+      </div>
+
+      <p id="avisoUnificado" class="ferramenta-aviso"></p>
+      <p class="ferramenta-dica">
+        Busca ao mesmo tempo no Gestão+, Wings e Databricks. O S.Deal não
+        entra aqui porque busca por número de voucher, não por CPF/CNPJ.
+      </p>
+
+      <div id="resumoUnificado" class="unificado-resumo hidden"></div>
+    </section>
+
+    <!--
+      ABA SOLICITAÇÃO
+      Eram duas abas ("Abrir AR" e "Abrir código") com o mesmo campo e o
+      mesmo placeholder, mudando só o destino. Um campo, dois destinos.
+    -->
+    <section id="painel-solicitacao" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Solicitação</h2>
+      </div>
+      <div class="ferramenta-linha">
+        <input
+          id="codigoSolicitacao"
+          type="text"
+          placeholder="Código da solicitação"
+          autocomplete="off"
+        >
+        <button id="abrirArBtn" class="primary">Abrir site da AR</button>
+        <button id="abrirSolicitacaoBtn" class="secondary">
+          Abrir solicitação
+        </button>
+      </div>
+
+      <div id="historicoSolicitacao" class="historico-lista hidden"></div>
+
+      <p id="avisoSolicitacao" class="ferramenta-aviso"></p>
+      <p class="ferramenta-dica">
+        Também dá para selecionar o código em qualquer página e usar o botão
+        direito — os dois destinos estão lá.
+      </p>
+    </section>
+
+    <!-- ABA DATABRICKS -->
+    <section id="painel-databricks" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Databricks - Solicitações do Cliente</h2>
+      </div>
+      <div class="ferramenta-linha">
+        <input
+          id="documentoDatabricks"
+          type="text"
+          placeholder="CPF ou CNPJ do cliente"
+          autocomplete="off"
+        >
+        <button id="buscarDatabricksBtn" class="primary">Buscar</button>
+      </div>
+      <div id="historicoDatabricks" class="historico-lista hidden"></div>
+      <p id="avisoDatabricks" class="ferramenta-aviso"></p>
+
+      <div class="ferramenta-linha" id="linhaFiltroDatabricks">
+        <input
+          id="filtroDatabricks"
+          type="text"
+          placeholder="Filtrar por código, situação, produto ou AR..."
+          autocomplete="off"
+          class="hidden"
+        >
+        <select id="ordenarDatabricks" class="hidden" title="Ordenar por">
+          <option value="solicitacao_desc">Mais recente primeiro</option>
+          <option value="solicitacao_asc">Mais antiga primeiro</option>
+        </select>
+      </div>
+      <div id="databricksResumo" class="databricks-resumo hidden">
+        <span id="databricksResumoTexto"></span>
+        <button id="atualizarDatabricksBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Databricks">
+          Atualizar busca
+        </button>
+      </div>
+
+      <div id="resultadoDatabricks" class="sdeal-resultado hidden" style="background: transparent; border: none;">
+        <!-- Os cartões de resultado vão aparecer aqui -->
+      </div>
+    </section>
+    
+    <!--
+      ABA S.DEAL
+      Busca de voucher no sistema legado sdeal.soluti.com.br. O popup so
+      manda o numero do voucher; toda a sequencia de requisicoes (e a
+      sessao logada, via aba real) fica por conta do background.
+    -->
+    <section id="painel-sdeal" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>S.Deal — buscar voucher</h2>
+      </div>
+
+      <div class="ferramenta-linha">
+        <input
+          id="codigoVoucherSDeal"
+          type="text"
+          placeholder="Número do voucher"
+          autocomplete="off"
+        >
+        <button id="buscarVoucherBtn" class="primary">Buscar</button>
+      </div>
+
+      <div id="historicoSDeal" class="historico-lista hidden"></div>
+
+      <p id="avisoSDeal" class="ferramenta-aviso"></p>
+
+      <div id="resultadoSDeal" class="sdeal-resultado hidden">
+        <div class="sdeal-cabecalho">
+          <span id="sdealSituacao" class="sdeal-situacao">—</span>
+          <span class="sdeal-cabecalho-acoes">
+            <button id="atualizarSDealBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no S.Deal">
+              Atualizar busca
+            </button>
+            <button id="copiarSDealBtn" class="link-btn" type="button">
+              Copiar
+            </button>
+          </span>
+        </div>
+        <div id="sdealLinhas" class="sdeal-linhas"></div>
+      </div>
+
+      <p class="ferramenta-dica">
+        A primeira busca pode abrir uma aba do S.Deal em segundo plano
+        para usar sua sessão logada — se você não estiver logado, faça
+        login uma vez e busque de novo.
+      </p>
+    </section>
+
+    <!--
+      ABA GESTÃO+
+      Busca o histórico de movimentações/vendas de um parceiro no
+      solutivd.gestao.plus a partir do CPF/CNPJ. Mesmo esquema do S.Deal:
+      o popup so manda o documento; a sessao logada (via aba real, em
+      segundo plano) e a sequencia de requisicoes ficam no background.
+    -->
+    <section id="painel-gestao" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Gestão+ — histórico do parceiro</h2>
+      </div>
+
+      <div class="ferramenta-linha">
+        <input
+          id="documentoGestao"
+          type="text"
+          placeholder="CPF ou CNPJ do parceiro"
+          autocomplete="off"
+        >
+        <button id="buscarGestaoBtn" class="primary">Buscar</button>
+      </div>
+
+      <div id="historicoGestaoDocumento" class="historico-lista hidden"></div>
+
+      <p id="avisoGestao" class="ferramenta-aviso"></p>
+
+      <div class="gestao-divisor">
+        <span>ou</span>
+      </div>
+
+      <div class="ferramenta-linha">
+        <input
+          id="numeroPedidoGestao"
+          type="text"
+          placeholder="Número do pedido"
+          autocomplete="off"
+        >
+        <button id="buscarPedidoNumeroBtn" class="secondary">Buscar pedido</button>
+      </div>
+
+      <div id="historicoGestaoPedido" class="historico-lista hidden"></div>
+
+      <p id="avisoBuscaPedido" class="ferramenta-aviso"></p>
+
+      <div id="resultadoBuscaPedido" class="sdeal-resultado hidden">
+        <div class="sdeal-cabecalho">
+          <span class="sdeal-situacao">Pedidos encontrados</span>
+          <button id="atualizarBuscaPedidoBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Gestão+">
+            Atualizar busca
+          </button>
+        </div>
+        <div id="listaBuscaPedido" class="gestao-movimentacoes"></div>
+      </div>
+
+      <div id="resultadoGestao" class="sdeal-resultado hidden">
+        <div class="sdeal-cabecalho">
+          <span id="gestaoParceiroNome" class="sdeal-situacao">—</span>
+          <span class="sdeal-cabecalho-acoes">
+            <button id="atualizarGestaoBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Gestão+">
+              Atualizar busca
+            </button>
+            <button id="copiarGestaoBtn" class="link-btn" type="button">
+              Copiar
+            </button>
+          </span>
+        </div>
+        <div class="sdeal-linhas">
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">E-mail</span>
+            <span id="gestaoParceiroEmail" class="sdeal-valor">—</span>
+          </div>
+        </div>
+        <div id="gestaoMovimentacoes" class="gestao-movimentacoes"></div>
+      </div>
+
+      <div id="detalhePedido" class="gestao-pedido hidden">
+        <div class="sdeal-cabecalho">
+          <span id="pedidoTitulo" class="sdeal-situacao">—</span>
+          <div class="gestao-pedido-acoes">
+            <label class="copiar-ao-abrir-toggle" title="Copia o pedido para a área de transferência assim que ele é aberto">
+              <input type="checkbox" id="copiarPedidoAoAbrir">
+              Copiar ao abrir
+            </label>
+            <button id="atualizarPedidoBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Gestão+">Atualizar busca</button>
+            <button id="copiarPedidoBtn" class="link-btn" type="button">Copiar</button>
+            <button id="fecharPedidoBtn" class="link-btn" type="button">Fechar</button>
+          </div>
+        </div>
+
+        <div id="pedidoBadges" class="gestao-pedido-badges"></div>
+
+        <div class="sdeal-linhas">
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Parceiro</span>
+            <span id="pedidoParceiro" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">E-mail</span>
+            <span id="pedidoEmail" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Forma de pagamento</span>
+            <span id="pedidoFormaPagamento" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Tipo de movimentação</span>
+            <span id="pedidoTipoMovimentacao" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Unidade</span>
+            <span id="pedidoUnidade" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Vendedor</span>
+            <span id="pedidoVendedor" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Negociado em</span>
+            <span id="pedidoDataNegociacao" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Faturado em</span>
+            <span id="pedidoDataFaturamento" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Código externo</span>
+            <span id="pedidoCodigoExterno" class="sdeal-valor">—</span>
+          </div>
+        </div>
+
+        <div class="gestao-pedido-secao-titulo">Itens</div>
+        <div id="pedidoItens" class="gestao-pedido-itens"></div>
+
+        <div class="sdeal-linhas gestao-pedido-totais">
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Desconto</span>
+            <span id="pedidoDesconto" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Frete</span>
+            <span id="pedidoFrete" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Valor retido</span>
+            <span id="pedidoRetido" class="sdeal-valor">—</span>
+          </div>
+          <div class="sdeal-linha">
+            <span class="sdeal-rotulo">Total</span>
+            <span id="pedidoTotal" class="sdeal-valor gestao-pedido-total-destaque">—</span>
+          </div>
+        </div>
+
+        <div class="gestao-pedido-secao-titulo">Histórico / situação</div>
+        <div id="pedidoHistorico" class="gestao-pedido-historico"></div>
+      </div>
+
+      <p id="avisoPedido" class="ferramenta-aviso"></p>
+
+      <p class="ferramenta-dica">
+        A primeira busca pode abrir uma aba do Gestão+ em segundo plano
+        para usar sua sessão logada — se você não estiver logado, faça
+        login uma vez e busque de novo.
+      </p>
+    </section>
+
+    <!--
+      ABA WINGS
+      Busca dados de faturamento (assinatura/autenticações) e detalhe do
+      usuário no billing.vaultid.com.br, usando a sessão logada do Wings
+      Portal (wingsportal.com.br). Mesmo esquema do Gestão+/S.Deal.
+    -->
+    <section id="painel-wings" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Wings — assinatura e autenticações</h2>
+      </div>
+
+      <div class="ferramenta-linha">
+        <input
+          id="documentoWings"
+          type="text"
+          placeholder="CPF ou CNPJ do usuário"
+          autocomplete="off"
+        >
+        <button id="buscarWingsBtn" class="primary">Buscar</button>
+      </div>
+
+      <div id="historicoWings" class="historico-lista hidden"></div>
+
+      <p id="avisoWings" class="ferramenta-aviso"></p>
+
+      <div id="resultadoWings" class="sdeal-resultado hidden">
+        <div class="sdeal-cabecalho">
+          <span id="wingsUsuarioNome" class="sdeal-situacao">—</span>
+          <span class="sdeal-cabecalho-acoes">
+            <button id="atualizarWingsBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Wings">
+              Atualizar busca
+            </button>
+            <button id="copiarWingsBtn" class="link-btn" type="button">
+              Copiar
+            </button>
+          </span>
+        </div>
+        <div id="wingsLinhas" class="sdeal-linhas"></div>
+
+        <div class="wings-secao">
+          <button
+            class="wings-secao-cabecalho"
+            type="button"
+            aria-expanded="false"
+            data-alvo="wingsUsuario"
+          >
+            <span class="wings-secao-titulo">Usuário</span>
+            <svg class="wings-secao-seta" viewBox="0 0 20 20" fill="none">
+              <path d="m5.5 8 4.5 4.5L14.5 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div id="wingsUsuario" class="sdeal-linhas wings-secao-conteudo hidden"></div>
+        </div>
+
+        <div class="wings-secao">
+          <button
+            class="wings-secao-cabecalho"
+            type="button"
+            aria-expanded="false"
+            data-alvo="wingsValidade"
+          >
+            <span class="wings-secao-titulo">Validade</span>
+            <svg class="wings-secao-seta" viewBox="0 0 20 20" fill="none">
+              <path d="m5.5 8 4.5 4.5L14.5 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div id="wingsValidade" class="sdeal-linhas wings-secao-conteudo hidden"></div>
+        </div>
+
+        <div class="wings-secao">
+          <button
+            class="wings-secao-cabecalho"
+            type="button"
+            aria-expanded="false"
+            data-alvo="wingsEmissoes"
+          >
+            <span class="wings-secao-titulo">
+              Emissão<span id="wingsEmissoesContagem" class="wings-secao-contagem"></span>
+            </span>
+            <svg class="wings-secao-seta" viewBox="0 0 20 20" fill="none">
+              <path d="m5.5 8 4.5 4.5L14.5 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div id="wingsEmissoes" class="wings-secao-conteudo hidden"></div>
+        </div>
+
+        <div class="wings-secao">
+          <button
+            class="wings-secao-cabecalho"
+            type="button"
+            aria-expanded="false"
+            data-alvo="wingsEventos"
+          >
+            <span class="wings-secao-titulo">
+              Eventos<span id="wingsEventosContagem" class="wings-secao-contagem"></span>
+            </span>
+            <svg class="wings-secao-seta" viewBox="0 0 20 20" fill="none">
+              <path d="m5.5 8 4.5 4.5L14.5 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div id="wingsEventos" class="gestao-movimentacoes wings-secao-conteudo hidden"></div>
+        </div>
+      </div>
+
+      <p class="ferramenta-dica">
+        A primeira busca pode abrir uma aba do Wings Portal em segundo
+        plano para usar sua sessão logada — se você não estiver logado,
+        faça login uma vez e busque de novo.
+      </p>
+    </section>
+
+    <!-- ABA CAPTURA (OCR) -->
+    <section id="painel-ocr" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Captura de texto da tela</h2>
+      </div>
+      <p class="painel-texto">
+        Use o botão abaixo ou o atalho de teclado e arraste sobre a área com
+        o texto. Em imagens, o botão direito tem "Extrair texto desta imagem",
+        que lê o arquivo original em vez do que está na tela.
+      </p>
+
+      <div class="atalho-card">
+        <span class="atalho-rotulo">Comando atual</span>
+        <span id="atalhoValor" class="atalho-valor">—</span>
+      </div>
+
+      <button id="capturarAgoraBtn" class="primary bloco">
+        Capturar agora
+      </button>
+      <button id="trocarAtalhoBtn" class="secondary bloco">Trocar atalho</button>
+      <p id="avisoOcr" class="ferramenta-aviso"></p>
+
+      <p class="ferramenta-dica">
+        A troca é feita na página de atalhos do navegador, por segurança. O
+        botão copia o endereço; cole na barra de endereços e ajuste o comando
+        "Extrair texto da tela".
+      </p>
+    </section>
+
+    <!--
+      ABA ONDE ATENDER
+      Lojas e parceiros respondem à mesma pergunta ("para onde eu mando essa
+      pessoa?"), e o menu de contexto já as trata como um grupo só. O controle
+      segmentado troca a lista; cada escopo mantém a própria busca e seleção.
+    -->
+    <section id="painel-atender" class="painel hidden" role="tabpanel">
+      <div class="escopo">
+        <button id="escopoLojas" class="escopo-btn ativo" type="button">
+          Soluti
+        </button>
+        <button id="escopoNacional" class="escopo-btn" type="button">
+          Parceiro nacional
+        </button>
+        <button id="escopoInternacional" class="escopo-btn" type="button">
+          Internacional
+        </button>
+      </div>
+
+      <div id="bloco-lojas" class="bloco-escopo">
+        <div class="barra">
+          <input
+            id="buscaLoja"
+            class="busca"
+            type="text"
+            placeholder="Buscar loja, cidade, bairro..."
+            autocomplete="off"
+          >
+          <select id="filtroUfLoja" class="filtro-uf">
+            <option value="">UF</option>
+          </select>
+        </div>
+
+        <div class="parceiros-info lojas-info">
+          <div class="info-resumo">
+            <span id="lojasContador">—</span>
+            <span id="lojasCarimbo" class="carimbo"></span>
+            <span id="lojasSelecao" class="selecao-tag hidden"></span>
+          </div>
+          <div class="info-acoes">
+            <button id="limparSelecaoLojas" class="link-btn hidden" type="button">
+              Limpar
+            </button>
+            <button id="copiarTodasLojas" class="link-btn" type="button">
+              Copiar todas
+            </button>
+            <button id="atualizarLojasBtn" class="link-btn" type="button">
+              Atualizar
+            </button>
+          </div>
+        </div>
+
+        <ul id="listaLojas" class="lista-parceiros"></ul>
+      </div>
+
+      <div id="bloco-parceiros" class="bloco-escopo hidden">
+        <div class="barra">
+          <input
+            id="buscaParceiro"
+            class="busca"
+            type="text"
+            placeholder="Buscar AR, município, bairro, telefone..."
+            autocomplete="off"
+          >
+          <select id="filtroUf" class="filtro-uf">
+            <option value="">UF</option>
+          </select>
+        </div>
+
+        <div class="parceiros-info lojas-info">
+          <div class="info-resumo">
+            <span id="parceirosContador">—</span>
+            <span id="parceirosSelecao" class="selecao-tag hidden"></span>
+          </div>
+          <div class="info-acoes">
+            <button id="limparSelecaoParceiros" class="link-btn hidden" type="button">
+              Limpar
+            </button>
+            <button id="copiarTodasParceiros" class="link-btn" type="button">
+              Copiar todas
+            </button>
+          </div>
+        </div>
+
+        <ul id="listaParceiros" class="lista-parceiros"></ul>
+      </div>
+    </section>
+
+  </main>
+
+  </div>
+
+  <footer class="rodape">
+    <span class="rodape-nome">
+      Apoio Soluti <span class="ponto">•</span> <span id="versao">v5.0</span>
+    </span>
+    <span class="rodape-credito">Suporte B2C</span>
+  </footer>
+
+  <script src="../data/lojas-dados.js"></script>
+  <script src="../data/parceiros-intl.js"></script>
+  <script src="../common/macros.js"></script>
+  <script src="../common/validacao.js"></script>
+  <script src="../content/equipe.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
