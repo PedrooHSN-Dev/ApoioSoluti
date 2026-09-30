@@ -173,11 +173,15 @@ html.modo-janela {
 html.modo-janela body {
   width: 100%;
   height: 100%;
-  max-width: 1400px;
   min-width: 620px;
   min-height: 480px;
-  margin: 0 auto;
+  margin: 0;
 }
+
+/* Janela grande: o conteudo ocupa a janela inteira (antes virava uma coluna
+   de 1400px com as laterais vazias) e a interface cresce junto, via `zoom`
+   aplicado por tema.js conforme o tamanho da janela. */
+html.modo-janela { zoom: var(--escala-janela, 1); }
 
 button,
 input,
@@ -2259,4 +2263,413 @@ html.modo-janela #resultadoDatabricks {
   color: var(--verde-escuro);
   background: var(--superficie);
   border-color: var(--verde-borda);
+}
+
+
+/* ==================================================================
+   Abas Começar e E-mails, e cartões de parceiro com unidade/e-mail
+   (vindos da v3.1)
+   ================================================================== */
+
+/* o atalho no meio da frase: monoespacado para nao ser lido como texto */
+.atalho-inline {
+  padding: 1px 5px;
+  color: var(--texto-medio);
+  background: var(--superficie-2);
+  border-radius: 5px;
+  font-family: Consolas, "Courier New", monospace;
+  font-weight: 600;
+}
+
+/* Aba Começar o dia ------------------------------------------------
+   Uma linha por sistema: marcar/desmarcar, o nome, e de que jeito se
+   entra nele. O "Sessão ativa" verde e a mesma informação do pontinho
+   das abas de consulta, só que escrita por extenso, porque aqui cabe.
+   ------------------------------------------------------------------ */
+
+/* A lista é quem rola, e não o painel: assim o botão "Começar o dia"
+   fica sempre visível, por mais endereços que você acrescente. Antes ela
+   não rolava nem encolhia (flex-shrink: 0), e a partir do oitavo cartão
+   a lista passava por baixo do rodapé. */
+.dia-lista {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 96px;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+
+/* tudo que não é a lista mantém o tamanho: a lista absorve o que sobra */
+#painel-dia > *:not(.dia-lista) {
+  flex-shrink: 0;
+}
+
+/* rede de segurança: na janela destacada, que o usuário pode encolher, o
+   próprio painel rola se nem o mínimo da lista couber */
+#painel-dia {
+  overflow-y: auto;
+}
+
+.dia-sistema {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 9px;
+}
+
+/* O cartão inteiro se arrasta; o traço só avisa que dá. Fica apagado até
+   o ponteiro entrar no cartão, para a lista parada não virar um paredão
+   de tracinhos. */
+.dia-pegada {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--texto-fraco);
+  opacity: 0.45;
+  cursor: grab;
+}
+
+.dia-sistema:hover .dia-pegada {
+  opacity: 1;
+}
+
+.dia-sistema:active {
+  cursor: grabbing;
+}
+
+/* o cartão que está sendo arrastado continua na lista, apagado, marcando
+   de onde ele saiu */
+.dia-sistema.arrastando {
+  opacity: 0.4;
+  border-color: var(--verde);
+  border-style: dashed;
+}
+
+/* arrastar seleciona texto sem querer, e o texto selecionado atrapalha o
+   próprio arrasto */
+.dia-sistema-nome,
+.dia-sistema-origem,
+.dia-sessao {
+  user-select: none;
+}
+
+/* A aba sendo arrastada. Sem o mesmo tratamento da lista: aqui o que se
+   quer ver é o buraco, porque as vizinhas se mexem para abrir espaço. */
+.aba.arrastando {
+  opacity: 0.35;
+}
+
+.dia-sistema:hover {
+  border-color: var(--verde-borda);
+}
+
+.dia-sistema input {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--verde-solido);
+  cursor: pointer;
+}
+
+.dia-sistema-texto {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.dia-sistema-nome {
+  color: var(--texto);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.dia-sistema-origem {
+  overflow: hidden;
+  color: var(--texto-fraco);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* pastilha neutra: "ainda nao sei" e "vai precisar de login" sao a mesma
+   cor de proposito. So a sessao confirmada ganha verde. */
+.dia-sessao {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  color: var(--neutro-texto);
+  background: var(--neutro-bg);
+  border: 1px solid var(--neutro-borda);
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dia-sessao.sessao-ok {
+  color: var(--verde-escuro);
+  background: var(--verde-claro);
+  border-color: var(--verde-borda);
+}
+
+.parceiro-unidade {
+  margin-bottom: 3px;
+  color: var(--texto-medio);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* faixa de e-mail no rodape do cartao — usada por loja e por parceiro */
+.cartao-email {
+  margin-top: 8px;
+}
+
+.cartao-email .parceiro-tel {
+  color: var(--texto-suave);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Aba de E-mails */
+.campo-email {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.campo-rotulo {
+  color: var(--texto-rotulo);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.campo-email select,
+.campo-email input {
+  height: 38px;
+  padding: 0 12px;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  outline: none;
+}
+
+.campo-email select {
+  cursor: pointer;
+}
+
+.campo-email input::placeholder {
+  color: var(--texto-fraco);
+}
+
+.campo-email select:focus,
+.campo-email input:focus {
+  border-color: var(--verde);
+}
+
+.confirmar-email {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 13px 14px;
+  margin-top: 10px;
+  background: var(--verde-claro);
+  border: 1px solid var(--verde-borda);
+  border-radius: 10px;
+}
+
+/* especificidade dupla de proposito, como .formulario.hidden acima: sozinha
+   ela perderia para .confirmar-email, que vem depois dela no arquivo */
+.confirmar-email.hidden {
+  display: none;
+}
+
+.confirmar-email-texto {
+  margin: 0;
+  color: var(--texto-medio);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.confirmar-email-botoes {
+  display: flex;
+  gap: 9px;
+}
+
+.confirmar-email-botoes button {
+  flex: 1;
+}
+
+.previa-email {
+  flex: 1;
+  min-height: 0;
+}
+
+.previa-email-rotulo {
+  color: var(--texto-rotulo);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.previa-email-campo {
+  margin-top: 10px;
+}
+
+.previa-email-campo b {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--texto-suave);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.previa-email-assunto {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Aviso de uma vez so: o Cco fixo antigo virou Cco de modelo. Some quando
+   o atendente clica em "Entendi". Cor de aviso, nao de erro — nada quebrou,
+   mas o endereco que aparece ali pode ser o unico registro dele. */
+.noticia {
+  flex-shrink: 0;
+  padding: 11px 13px;
+  margin-bottom: 12px;
+  background: var(--superficie-4);
+  border: 1px solid var(--borda);
+  border-left: 3px solid var(--verde);
+  border-radius: 8px;
+}
+
+.noticia p {
+  margin: 0 0 9px;
+  color: var(--texto-medio);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.noticia .secondary {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 11.5px;
+}
+
+/* o Cco e oculto para quem recebe, nao para quem envia: o endereco aparece
+   na confirmacao para ninguem descobrir meses depois que estava copiando */
+.confirmar-email-cco {
+  margin: 6px 0 0;
+  color: var(--texto-suave);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* a .lista dos macros tem 42% porque divide o painel com o detalhe; aqui
+   a lista e sozinha. Classe dupla de proposito: com uma so, .lista venceria
+   por vir depois no arquivo */
+.lista.lista-modelos {
+  width: 100%;
+  flex: 1;
+}
+
+/* o endereco copiado aparece na lista: um Cco que so se descobre abrindo
+   o modelo e um Cco que ninguem confere */
+.modelo-cco {
+  flex-shrink: 0;
+  overflow: hidden;
+  color: var(--texto-tag);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item.ativo .modelo-cco {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.modelo-marcadores {
+  flex-shrink: 0;
+  color: var(--texto-tag);
+  font-size: 10.5px;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.item.ativo .modelo-marcadores {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.item-meio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* na lista de macros as acoes so aparecem no hover porque o item tambem
+   serve para selecionar. Aqui o item nao seleciona nada: editar e excluir
+   sao a unica coisa que ele faz, e escondê-las esconderia a funcao */
+.lista-modelos .acoes {
+  display: flex;
+}
+
+
+/* Seleção múltipla de macros (clique, Ctrl+clique, Shift+clique) */
+
+#lista .item { user-select: none; }
+
+.danger {
+  flex-shrink: 0;
+  padding: 0 14px;
+  color: #fff;
+  background: var(--vermelho);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.danger:disabled { opacity: 0.4; cursor: default; }
+
+.ocultos-aviso { font-size: 12px; }
+
+/* ==================================================================
+   Janela grande (modo-janela)
+   ================================================================== */
+
+/* Telas de formulario/consulta: esticar ate a borda deixa o rotulo longe do
+   valor. Macros e Lojas (listas) usam a largura toda. */
+html.modo-janela .painel:not(#painel-macros):not(#painel-atender) {
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* Lojas e parceiros em colunas: um cartao por linha, com 1600px de largura,
+   era quase so espaco vazio */
+html.modo-janela .lista-parceiros {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  align-content: start;
+  gap: 10px;
+}
+
+html.modo-janela .lista-parceiros .parceiro-vazio,
+html.modo-janela .lista-parceiros .parceiro-mais {
+  grid-column: 1 / -1;
 }

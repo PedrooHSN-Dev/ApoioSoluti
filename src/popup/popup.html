@@ -64,7 +64,7 @@
       class="barra-lateral"
       role="tablist"
       aria-label="Ferramentas"
-      title="Ctrl+Tab / Ctrl+Shift+Tab troca de aba"
+      title="Ctrl+Tab / Ctrl+Shift+Tab troca de aba · arraste as abas para reordenar"
     >
       <button
         id="barraToggleBtn"
@@ -79,6 +79,15 @@
       </button>
 
       <div class="grupo-abas" data-label="Rápido">
+        <button class="aba" data-aba="dia" role="tab" aria-selected="false" title="Começar o dia">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="7.2" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M8.4 7.1 13.1 10l-4.7 2.9V7.1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Começar</span>
+        </button>
         <button class="aba ativa" data-aba="macros" role="tab" aria-selected="true" title="Macros">
           <span class="aba-icone" aria-hidden="true">
             <svg viewBox="0 0 20 20" fill="none">
@@ -172,6 +181,15 @@
           </span>
           <span class="aba-nome">Captura</span>
         </button>
+              <button class="aba" data-aba="emails" role="tab" aria-selected="false" title="E-mails">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <rect x="2.6" y="4.4" width="14.8" height="11.2" rx="1.6" stroke="currentColor" stroke-width="1.4"/>
+              <path d="m3.2 5.6 6.8 5.2 6.8-5.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="aba-nome">E-mails</span>
+        </button>
       </div>
     </nav>
 
@@ -203,6 +221,8 @@
           autocomplete="off"
         >
         <button id="novoBtn" class="primary">Criar</button>
+        <button id="excluirSelecionadosBtn" class="danger" type="button" disabled
+          title="Clique seleciona · Ctrl+clique soma · Shift+clique marca o intervalo">Excluir</button>
       </div>
 
       <section id="formulario" class="formulario hidden">
@@ -788,6 +808,274 @@
       </div>
     </section>
 
+    <section id="painel-dia" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Começar o dia</h2>
+        <div class="secao-acoes">
+          <span id="diaContador">—</span>
+          <button id="novoEnderecoBtn" class="link-btn" type="button">
+            Acrescentar
+          </button>
+          <button id="backupBtn" class="link-btn" type="button">
+            Outro PC
+          </button>
+        </div>
+      </div>
+
+      <p class="painel-texto">
+        Abre o que estiver marcado, na ordem da lista, sem repetir aba já
+        aberta. Arraste os cartões para reordenar.
+      </p>
+
+      <!--
+        Os sistemas da tabela (src/dados/sistemas.js) só se desmarcam: as
+        abas de consulta dependem deles. Só sai o que você acrescentou.
+      -->
+      <section id="formularioDia" class="formulario hidden">
+        <label for="diaNovoNome">Nome (opcional)</label>
+        <input
+          id="diaNovoNome"
+          type="text"
+          placeholder="Ex: Chamados"
+          autocomplete="off"
+        >
+
+        <label for="diaNovaUrl">Endereço</label>
+        <input
+          id="diaNovaUrl"
+          type="text"
+          placeholder="exemplo.com.br/pagina"
+          autocomplete="off"
+        >
+
+        <div class="form-botoes">
+          <button id="salvarEnderecoBtn" class="primary">Acrescentar</button>
+          <button id="cancelarEnderecoBtn" class="secondary">Cancelar</button>
+        </div>
+      </section>
+
+      <!--
+        LEVAR PARA OUTRO PC
+        Recolhido: é manutenção (máquina nova, backup antes de formatar), e
+        aberto ele comia 110px da lista numa aba de uso diário.
+
+        Macros, modelos e a lista já viajam sozinhos pelo storage.sync, mas
+        só entre máquinas logadas no MESMO navegador — o arquivo cobre o
+        resto. O código fica em src/popup/backup.js, por não ser sobre
+        começar o dia.
+      -->
+      <section id="blocoBackup" class="formulario hidden">
+        <p class="ferramenta-dica" style="margin-top: 0">
+          Um arquivo com seus macros, seus modelos de e-mail e esta lista.
+          Com a mesma conta do navegador nos dois PCs, as três já viajam
+          sozinhas — isto serve para máquina nova, outro navegador, ou uma
+          cópia antes de formatar.
+        </p>
+
+        <div class="form-botoes">
+          <button id="exportarTudoBtn" class="primary">Exportar tudo</button>
+          <button id="importarTudoBtn" class="secondary">Importar</button>
+          <input id="importarTudoInput" type="file" accept="application/json" hidden>
+        </div>
+
+        <p id="avisoBackup" class="ferramenta-aviso"></p>
+      </section>
+
+      <div id="diaSistemas" class="dia-lista"></div>
+
+      <button id="comecarDiaBtn" class="primary bloco">Começar o dia</button>
+
+      <p id="avisoDia" class="ferramenta-aviso"></p>
+
+      <p class="ferramenta-dica">
+        <span id="atalhoDia">o atalho</span> dispara a mesma rotina sem abrir
+        esta janela. Para trocar o comando, use a página de atalhos do
+        navegador, na aba Captura.
+      </p>
+
+      <p class="ferramenta-dica">
+        As abas do menu lateral também podem ser reordenadas: arraste uma para
+        cima ou para baixo (ou Alt + setas com a aba em foco).
+        <button id="restaurarAbasBtn" class="link-btn" type="button">
+          Restaurar ordem padrão
+        </button>
+      </p>
+
+    </section>
+
+
+    <section id="painel-emails" class="painel hidden" role="tabpanel">
+      <div class="escopo">
+        <button id="escopoEnviarEmail" class="escopo-btn ativo" type="button">
+          Enviar
+        </button>
+        <button id="escopoModelosEmail" class="escopo-btn" type="button">
+          Modelos
+        </button>
+      </div>
+
+      <div id="bloco-enviar-email" class="bloco-escopo">
+        <div class="campo-email">
+          <label for="tipoEmail" class="campo-rotulo">Modelo</label>
+          <select id="tipoEmail"></select>
+        </div>
+
+        <div class="campo-email">
+          <label for="destinatarioEmail" class="campo-rotulo">
+            Destinatário
+          </label>
+          <input
+            id="destinatarioEmail"
+            type="email"
+            placeholder="nome@empresa.com"
+            autocomplete="off"
+          >
+        </div>
+
+        <!--
+          O Cco nao se edita aqui: ele e do modelo, e se define junto do
+          assunto e do corpo, na sub-aba "Modelos". Aqui ele aparece duas
+          vezes so para conferencia — na previa, logo abaixo, e de novo na
+          confirmacao. Editar nesta tela mudava o Cco de todos os envios
+          futuros, que era o oposto de "um por tipo de e-mail".
+        -->
+        <div id="camposExtrasEmail"></div>
+
+        <button id="enviarEmailBtn" class="primary bloco" disabled>
+          Enviar e-mail
+        </button>
+
+        <div id="confirmarEmailCard" class="confirmar-email hidden">
+          <p class="confirmar-email-texto">
+            Confirmar envio de <strong id="confirmarEmailTipo"></strong> para
+            <strong id="confirmarEmailPara"></strong>?
+          </p>
+          <p id="confirmarEmailCco" class="confirmar-email-cco hidden">
+            Com cópia oculta para
+            <strong id="confirmarEmailCcoEndereco"></strong>.
+          </p>
+          <div class="confirmar-email-botoes">
+            <button id="confirmarEmailNaoBtn" class="secondary" type="button">
+              Cancelar
+            </button>
+            <button id="confirmarEmailSimBtn" class="primary" type="button">
+              Confirmar e enviar
+            </button>
+          </div>
+        </div>
+
+        <p id="avisoEmail" class="ferramenta-aviso"></p>
+
+        <div class="detalhe previa-email">
+          <span class="previa-email-rotulo">Prévia do rascunho</span>
+
+          <div id="previaEmailCcoCampo" class="previa-email-campo hidden">
+            <b>Cco</b>
+            <div id="previaEmailCco" class="previa-email-assunto"></div>
+          </div>
+
+          <div class="previa-email-campo">
+            <b>Assunto</b>
+            <div id="previaEmailAssunto" class="previa-email-assunto"></div>
+          </div>
+
+          <div class="previa-email-campo">
+            <b>Corpo</b>
+            <div id="previaEmailCorpo" class="resposta"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="bloco-modelos-email" class="bloco-escopo hidden">
+        <div class="secao-titulo">
+          <h2>Modelos</h2>
+          <div class="secao-acoes">
+            <span id="contadorModelos">0 modelos</span>
+            <button id="exportarModelosBtn" class="link-btn" type="button">Exportar</button>
+            <button id="importarModelosBtn" class="link-btn" type="button">Importar</button>
+            <input id="importarModelosInput" type="file" accept="application/json" hidden>
+          </div>
+        </div>
+
+        <p id="avisoModelos" class="ferramenta-aviso"></p>
+
+        <p id="avisoSyncEmails" class="ferramenta-aviso erro hidden">
+          Sem espaço para sincronizar: os modelos estão salvos só neste
+          navegador.
+        </p>
+
+        <!--
+          Aviso de uma vez so, mostrado depois que o Cco fixo antigo virou
+          Cco de modelo. Fica ate o atendente clicar em "Entendi": um
+          endereco que deixou de ser copiado nao pode sumir em silencio.
+        -->
+        <div id="noticiaCco" class="noticia hidden">
+          <p id="noticiaCcoTexto"></p>
+          <button id="noticiaCcoOkBtn" class="secondary" type="button">
+            Entendi
+          </button>
+        </div>
+
+        <div class="barra">
+          <button id="novoModeloBtn" class="primary">Criar modelo</button>
+        </div>
+
+        <section id="formularioModelo" class="formulario hidden">
+          <input type="hidden" id="modeloId">
+
+          <label for="modeloNome">Nome do modelo</label>
+          <input
+            id="modeloNome"
+            type="text"
+            placeholder="Ex: Acesso remoto"
+            autocomplete="off"
+          >
+
+          <label for="modeloAssunto">Assunto</label>
+          <input
+            id="modeloAssunto"
+            type="text"
+            placeholder="Assunto do e-mail"
+            autocomplete="off"
+          >
+
+          <label for="modeloCorpo">Corpo</label>
+          <textarea
+            id="modeloCorpo"
+            placeholder="Texto do e-mail..."
+          ></textarea>
+
+          <label for="modeloCco">Cco (opcional)</label>
+          <input
+            id="modeloCco"
+            type="email"
+            placeholder="deixe vazio para este modelo não copiar ninguém"
+            autocomplete="off"
+          >
+
+          <p class="ferramenta-dica">
+            O <b>Cco</b> vale só para este modelo: todo e-mail enviado com
+            ele copia esse endereço em cópia oculta. O endereço aparece na
+            prévia e na confirmação antes de cada envio.
+          </p>
+
+          <p class="ferramenta-dica">
+            Escreva <b>{assim}</b> para criar um campo a preencher na hora do
+            envio — <b>{codigo}</b> vira um campo "codigo". O marcador
+            <b>{saudacao}</b> vira "Bom dia", "Boa tarde" ou "Boa noite"
+            sozinho, pelo horário.
+          </p>
+
+          <div class="form-botoes">
+            <button id="salvarModeloBtn" class="primary">Salvar</button>
+            <button id="cancelarModeloBtn" class="secondary">Cancelar</button>
+          </div>
+        </section>
+
+        <ul id="listaModelos" class="lista lista-modelos"></ul>
+      </div>
+    </section>
+
   </main>
 
   </div>
@@ -799,11 +1087,26 @@
     <span class="rodape-credito">Suporte B2C</span>
   </footer>
 
+  <!-- A ORDEM IMPORTA (scripts classicos dividem o mesmo escopo global):
+         1. dados  — tabelas fixas lidas na partida
+         2. common — storage (dividido com o content script)
+         3. popup.js — casca e helpers ($, mostrarAviso, macros...)
+         4. modulos das abas Comecar/E-mails — usam os helpers do popup.js
+         5. partida — chamadas iniciais, POR ULTIMO -->
+  <script src="../data/sistemas.js"></script>
   <script src="../data/lojas-dados.js"></script>
-  <script src="../data/parceiros-intl.js"></script>
+  <script src="../data/emails-equipe.js"></script>
   <script src="../common/macros.js"></script>
+  <script src="../common/emails.js"></script>
+  <script src="../common/rotina-dia.js"></script>
   <script src="../common/validacao.js"></script>
   <script src="../content/equipe.js"></script>
   <script src="popup.js"></script>
+  <script src="reordenar.js"></script>
+  <script src="ordem-abas.js"></script>
+  <script src="aba-dia.js"></script>
+  <script src="aba-emails.js"></script>
+  <script src="backup.js"></script>
+  <script src="partida.js"></script>
 </body>
 </html>

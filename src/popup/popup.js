@@ -8,6 +8,15 @@ const EQUIPE = window.MACROS_EQUIPE || [];
 let meusMacros = [];
 let selecionado = null;
 
+// selecao multipla na lista (inclusive macros da equipe), como no explorador
+// de arquivos: clique simples, Ctrl+clique e Shift+clique. O ancora e o
+// ultimo clicado sem Shift — e dele que o intervalo do Shift parte.
+const macrosMarcados = new Set();
+let ancoraMacro = null;
+let ordemMacrosVisiveis = [];
+// ids de macros da equipe que a pessoa excluiu (ver ApoioMacros.lerOcultos)
+let macrosOcultos = [];
+
 // a saudacao e a leitura/gravacao dos macros moram em src/common/macros.js,
 // compartilhadas com o content script
 const { resolverResposta } = window.ApoioMacros;
@@ -57,6 +66,7 @@ function macrosDaEquipe() {
   return EQUIPE.filter(
     (item) => item && item.comando && item.resposta
   )
+    .filter((item) => !macrosOcultos.includes(item.id || `equipe-${item.comando}`))
     .map((item) => ({
       id: item.id || `equipe-${item.comando}`,
       comando: String(item.comando),
@@ -74,6 +84,7 @@ function todosOsMacros() {
 
 async function carregarMacros() {
   // migrar: true so aqui — ver o comentario em src/common/macros.js
+  macrosOcultos = await window.ApoioMacros.lerOcultos();
   const guardados = await window.ApoioMacros.ler({ migrar: true });
   const { normalizados, precisaSalvar } = normalizarUsuario(guardados);
 
@@ -144,6 +155,9 @@ async function salvarFormulario() {
     const novo = { id: gerarId(), comando, resposta, origem: "usuario" };
     meusMacros.push(novo);
     selecionado = novo.id;
+    macrosMarcados.clear();
+    macrosMarcados.add(novo.id);
+    ancoraMacro = novo.id;
   }
 
   await salvarMacros();
@@ -163,6 +177,7 @@ async function excluirMacro(id) {
 
   meusMacros = meusMacros.filter((item) => item.id !== id);
 
+  macrosMarcados.delete(id);
   if (selecionado === id) {
     selecionado = null;
   }
@@ -210,7 +225,7 @@ function criarItem(macro) {
   const item = document.createElement("li");
   item.className = "item";
 
-  if (macro.id === selecionado) {
+  if (macrosMarcados.has(macro.id)) {
     item.classList.add("ativo");
   }
 
@@ -248,10 +263,7 @@ function criarItem(macro) {
     item.appendChild(aviso);
   }
 
-  item.addEventListener("click", () => {
-    selecionado = macro.id;
-    renderizarLista();
-  });
+  item.addEventListener("click", (evento) => clicarMacro(macro.id, evento));
 
   return item;
 }
@@ -266,6 +278,17 @@ function renderizarLista() {
   const equipe = filtrar(macrosDaEquipe());
   const total = meusMacros.length + macrosDaEquipe().length;
 
+  // a ordem em que aparecem na tela e a do intervalo do Shift
+  ordemMacrosVisiveis = [...meus, ...equipe].map((m) => m.id);
+
+  // o que saiu da tela (busca mudou, macro apagado) sai da selecao: senao o
+  // Excluir apagaria algo que a pessoa nao esta vendo
+  const visiveis = new Set(ordemMacrosVisiveis);
+  [...macrosMarcados].forEach((id) => {
+    if (!visiveis.has(id)) macrosMarcados.delete(id);
+  });
+  if (!visiveis.has(ancoraMacro)) ancoraMacro = null;
+
   $("contador").textContent =
     `${meus.length + equipe.length}/${total} comando` +
     (total === 1 ? "" : "s");
@@ -277,7 +300,9 @@ function renderizarLista() {
       ? "Nenhum comando corresponde à busca."
       : "Nenhum comando cadastrado. Clique em Criar para começar.";
     lista.appendChild(vazio);
+    renderizarAvisoOcultos(lista);
     renderizarDetalhe();
+    atualizarBotaoExcluir();
     return;
   }
 
@@ -291,7 +316,9 @@ function renderizarLista() {
     equipe.forEach((macro) => lista.appendChild(criarItem(macro)));
   }
 
+  renderizarAvisoOcultos(lista);
   renderizarDetalhe();
+  atualizarBotaoExcluir();
 }
 
 function renderizarDetalhe() {
@@ -299,6 +326,12 @@ function renderizarDetalhe() {
   detalhe.innerHTML = "";
 
   // sem essa checagem, selecionado null casaria com macro sem id
+  if (macrosMarcados.size > 1) {
+    detalhe.classList.add("vazio");
+    detalhe.textContent = `${macrosMarcados.size} macros selecionados. Use Excluir para removê-los.`;
+    return;
+  }
+
   const macro = selecionado
     ? todosOsMacros().find((item) => item.id === selecionado)
     : null;
@@ -397,6 +430,119 @@ $("busca").addEventListener("input", () => {
 });
 
 /* Importar / exportar macros ---------------------------------------- */
+
+/* Selecionar varios para excluir -------------------------------------
+   Os macros pessoais sao apagados de verdade. Os da equipe moram no codigo
+   da extensao e sao iguais para todo mundo: "excluir" um deles o esconde
+   para esta pessoa (e no content script, para ele nao expandir mais), e o
+   aviso no fim da lista permite trazer de volta.
+   ------------------------------------------------------------------ */
+
+// clique simples: so este. Ctrl (ou Cmd): acrescenta/tira este sem mexer nos
+// outros. Shift: todos entre o ancora e este (com Ctrl junto, somando ao que
+// ja estava marcado).
+function clicarMacro(id, evento) {
+  const soma = evento.ctrlKey || evento.metaKey;
+
+  if (evento.shiftKey && ancoraMacro && ordemMacrosVisiveis.includes(ancoraMacro)) {
+    const de = ordemMacrosVisiveis.indexOf(ancoraMacro);
+    const ate = ordemMacrosVisiveis.indexOf(id);
+    const [inicio, fim] = de < ate ? [de, ate] : [ate, de];
+
+    if (!soma) macrosMarcados.clear();
+    ordemMacrosVisiveis.slice(inicio, fim + 1).forEach((x) => macrosMarcados.add(x));
+    // o ancora nao se move no Shift: clicar em outro ponto reajusta o intervalo
+  } else if (soma) {
+    if (macrosMarcados.has(id)) macrosMarcados.delete(id);
+    else macrosMarcados.add(id);
+    ancoraMacro = id;
+  } else {
+    macrosMarcados.clear();
+    macrosMarcados.add(id);
+    ancoraMacro = id;
+  }
+
+  // o painel de detalhe mostra o macro quando ha exatamente um selecionado
+  selecionado = macrosMarcados.size === 1 ? [...macrosMarcados][0] : null;
+  renderizarLista();
+}
+
+function atualizarBotaoExcluir() {
+  const n = macrosMarcados.size;
+  const botao = $("excluirSelecionadosBtn");
+  botao.disabled = n === 0;
+  botao.textContent = n > 1 ? `Excluir (${n})` : "Excluir";
+}
+
+async function excluirSelecionados() {
+  const ids = [...macrosMarcados];
+  const meus = ids.filter((id) => meusMacros.some((m) => m.id === id));
+  const daEquipe = ids.filter(
+    (id) => !meus.includes(id) && macrosDaEquipe().some((m) => m.id === id)
+  );
+
+  if (!meus.length && !daEquipe.length) return;
+
+  const linhas = [];
+  if (meus.length) linhas.push(`• ${meus.length} macro(s) seu(s) serão apagados.`);
+  if (daEquipe.length) {
+    linhas.push(
+      `• ${daEquipe.length} macro(s) da equipe serão ocultados (deixam de aparecer e de ` +
+      `expandir aqui; dá para restaurar no fim da lista).`
+    );
+  }
+
+  if (!confirm(`Excluir os macros selecionados?\n\n${linhas.join("\n")}`)) return;
+
+  if (meus.length) {
+    meusMacros = meusMacros.filter((m) => !meus.includes(m.id));
+    await salvarMacros();
+  }
+
+  if (daEquipe.length) {
+    macrosOcultos = [...new Set([...macrosOcultos, ...daEquipe])];
+    await window.ApoioMacros.salvarOcultos(macrosOcultos);
+  }
+
+  if (ids.includes(selecionado)) selecionado = null;
+
+  macrosMarcados.clear();
+  ancoraMacro = null;
+  renderizarLista();
+}
+
+function renderizarAvisoOcultos(lista) {
+  const existentes = new Set(EQUIPE.map((m) => m.id || `equipe-${m.comando}`));
+  const n = macrosOcultos.filter((id) => existentes.has(id)).length;
+  if (!n) return;
+
+  const linha = document.createElement("li");
+  linha.className = "lista-vazia ocultos-aviso";
+  linha.appendChild(
+    document.createTextNode(`${n} macro(s) da equipe oculto(s). `)
+  );
+
+  const botao = document.createElement("button");
+  botao.type = "button";
+  botao.className = "link-btn";
+  botao.textContent = "Restaurar";
+  botao.addEventListener("click", async () => {
+    if (!confirm(`Restaurar os ${n} macros da equipe ocultos?`)) return;
+    macrosOcultos = [];
+    await window.ApoioMacros.salvarOcultos([]);
+    renderizarLista();
+  });
+  linha.appendChild(botao);
+  lista.appendChild(linha);
+}
+
+$("excluirSelecionadosBtn").addEventListener("click", excluirSelecionados);
+
+// outra janela do popup, ou o sync, mexeu na lista de ocultos
+window.ApoioMacros.aoMudarOcultos((ids) => {
+  macrosOcultos = ids;
+  renderizarLista();
+});
 
 function exportarMacros() {
   if (!meusMacros.length) {
@@ -562,6 +708,8 @@ $("abrirJanelaBtn").addEventListener("click", async () => {
 
 const abas = document.querySelectorAll(".aba");
 const paineis = {
+  dia: $("painel-dia"),
+  emails: $("painel-emails"),
   macros: $("painel-macros"),
   unificada: $("painel-unificada"),
   solicitacao: $("painel-solicitacao"),
@@ -705,6 +853,7 @@ function trocarAba(nome) {
 
   const foco = {
     macros: "busca",
+    emails: "destinatarioEmail",
     unificada: "documentoUnificado",
     solicitacao: "codigoSolicitacao",
     databricks: "documentoDatabricks",
@@ -779,7 +928,8 @@ document.addEventListener("keydown", (evento) => {
 
   evento.preventDefault();
 
-  const listaAbas = Array.from(abas);
+  // consulta de novo: a ordem das abas pode ter sido mudada arrastando
+  const listaAbas = Array.from(document.querySelectorAll(".aba"));
   const atual = listaAbas.findIndex((aba) => aba.classList.contains("ativa"));
   const passo = evento.shiftKey ? -1 : 1;
   const proximo = (atual + passo + listaAbas.length) % listaAbas.length;
@@ -2710,20 +2860,68 @@ function textoLoja(r) {
   return linhas.join("\n");
 }
 
+function unidadeVisivel(r) {
+  return semAcento(r.unidade) === semAcento(r.ar) ? "" : r.unidade;
+}
+
+function bairroVisivel(r) {
+  return r.bairro && r.bairro !== r.municipio ? r.bairro : "";
+}
+
+function linhaLocalNacional(r) {
+  const bairro = bairroVisivel(r);
+  return bairro ? `${r.municipio} — ${bairro}` : r.municipio;
+}
+
+function regiaoVisivel(r) {
+  return r.regiao !== r.cidade ? r.regiao : "";
+}
+
+function linhaLocalIntl(r) {
+  return [r.cidade, regiaoVisivel(r), r.bairro].filter(Boolean).join(" — ");
+}
+
+function linhaEnderecoNacional(r) {
+  return r.cep ? `${r.endereco} — CEP ${r.cep}` : r.endereco;
+}
+
+function linhaEnderecoIntl(r) {
+  return r.codigo_postal ? `${r.endereco} — ${r.codigo_postal}` : r.endereco;
+}
+
+function textoEtiquetado(pares) {
+  return pares
+    .filter(([, valor]) => valor)
+    .map(([etiqueta, valor]) => `${etiqueta}: ${valor}`)
+    .join("\n");
+}
+
 function textoParceiroNacional(r) {
-  const linhas = [r.ar];
-  linhas.push(r.bairro ? `${r.mun} - ${r.bairro} (${r.uf})` : `${r.mun} (${r.uf})`);
-  if (r.end) linhas.push(r.end);
-  if (r.tel) linhas.push(formatarTelefone(r.tel));
-  return linhas.join("\n");
+  return textoEtiquetado([
+    ["AR", r.ar],
+    ["Unidade", unidadeVisivel(r)],
+    ["Cidade", `${r.municipio} (${r.uf})`],
+    ["Bairro", bairroVisivel(r)],
+    ["Endereço", r.endereco],
+    ["CEP", r.cep],
+    ["Telefone", formatarTelefone(r.telefone)],
+    ["E-mail", r.email]
+  ]);
 }
 
 function textoParceiroIntl(r) {
-  const linhas = [r.ar || "AR não informada", r.pais];
-  if (r.resp) linhas.push(`Responsável: ${r.resp}`);
-  if (r.end) linhas.push(r.end);
-  if (r.tel) linhas.push(r.tel);
-  return linhas.join("\n");
+  return textoEtiquetado([
+    ["AR", r.ar],
+    ["Unidade", unidadeVisivel(r)],
+    ["País", r.pais],
+    ["Cidade", r.cidade],
+    ["Região", regiaoVisivel(r)],
+    ["Bairro", r.bairro],
+    ["Endereço", r.endereco],
+    ["Código postal", r.codigo_postal],
+    ["Telefone", r.telefone],
+    ["E-mail", r.email]
+  ]);
 }
 
 /* Selecao de cartoes ------------------------------------------------
@@ -2984,10 +3182,10 @@ function criarCartaoLoja(r) {
 
 const MAX_RESULTADOS = 60;
 
-// A lista nacional tem ~3.900 ARs (mais de meio mega). Como <script> ela era
-// lida na abertura do popup, mesmo para quem so ia usar os macros. Agora e um
-// .json buscado quando a aba de parceiros e aberta pela primeira vez.
-const ARQUIVO_PARCEIROS = "../data/parceiros-dados.json";
+// As duas listas sao .json no mesmo formato ({ meta, registros }) e so sao
+// buscadas quando a aba de parceiros e aberta pela primeira vez.
+const ARQUIVO_PARCEIROS_NACIONAIS = "../data/parceiros-nacionais.json";
+const ARQUIVO_PARCEIROS_INTL = "../data/parceiros-internacionais.json";
 
 let parceirosPromessa = null;
 let parceirosCarregando = false;
@@ -3027,27 +3225,34 @@ async function montarParceiros() {
   renderizarParceiros();
 
   let nacional = [];
+  let intl = [];
+
   try {
-    const resposta = await fetch(ARQUIVO_PARCEIROS);
-    if (!resposta.ok) throw new Error(`arquivo respondeu ${resposta.status}`);
-    nacional = await resposta.json();
+    [nacional, intl] = await Promise.all([
+      buscarRegistros(ARQUIVO_PARCEIROS_NACIONAIS),
+      buscarRegistros(ARQUIVO_PARCEIROS_INTL)
+    ]);
   } finally {
     parceirosCarregando = false;
   }
-
-  const intl = window.AR_INTL || [];
 
   // pre-normaliza uma vez: a busca depois e so um includes no campo "chave"
   indiceNacional = nacional.map((r, i) => ({
     ...r,
     _id: `nac-${i}`,
-    chave: semAcento(`${r.ar} ${r.uf} ${r.mun} ${r.bairro} ${r.end} ${r.tel}`)
+    chave: chaveBusca([
+      r.ar, r.unidade, r.uf, r.municipio, r.bairro,
+      r.endereco, r.cep, r.telefone, r.email
+    ])
   }));
 
   indiceIntl = intl.map((r, i) => ({
     ...r,
     _id: `intl-${i}`,
-    chave: semAcento(`${r.ar} ${r.pais} ${r.resp} ${r.end} ${r.tel}`)
+    chave: chaveBusca([
+      r.ar, r.unidade, r.pais, r.cidade, r.regiao,
+      r.bairro, r.endereco, r.codigo_postal, r.telefone, r.email
+    ])
   }));
 
   const ufs = [...new Set(nacional.map((r) => r.uf))].sort();
@@ -3228,28 +3433,11 @@ function criarCartaoNacional(r) {
 
   topo.appendChild(nome);
   montarTopoCartao(topo, item, texto, uf);
-
-  const local = document.createElement("div");
-  local.className = "parceiro-local";
-  local.textContent = r.bairro ? `${r.mun} — ${r.bairro}` : r.mun;
-
-  const end = document.createElement("div");
-  end.className = "parceiro-end";
-  end.textContent = r.end;
-
   item.appendChild(topo);
-  item.appendChild(local);
-  item.appendChild(end);
 
-  const rodape = document.createElement("div");
-  rodape.className = "parceiro-rodape";
-
-  const tel = document.createElement("span");
-  tel.className = "parceiro-tel";
-  tel.textContent = formatarTelefone(r.tel) || "Sem telefone";
-  rodape.appendChild(tel);
-
-  item.appendChild(rodape);
+  adicionarUnidade(item, r);
+  adicionarLocalEndereco(item, linhaLocalNacional(r), linhaEnderecoNacional(r));
+  adicionarRodape(item, formatarTelefone(r.telefone), r.email);
 
   tornarSelecionavel(item, "nacional", r, texto);
   return item;
@@ -3266,7 +3454,7 @@ function criarCartaoIntl(r) {
 
   const nome = document.createElement("span");
   nome.className = "parceiro-nome";
-  nome.textContent = r.ar || "AR não informada";
+  nome.textContent = r.ar;
 
   const pais = document.createElement("span");
   pais.className = "parceiro-pais";
@@ -3276,33 +3464,76 @@ function criarCartaoIntl(r) {
   montarTopoCartao(topo, item, texto, pais);
   item.appendChild(topo);
 
-  if (r.resp) {
-    const resp = document.createElement("div");
-    resp.className = "parceiro-resp";
-    resp.textContent = `Responsável: ${r.resp}`;
-    item.appendChild(resp);
-  }
+  adicionarUnidade(item, r);
+  adicionarLocalEndereco(item, linhaLocalIntl(r), linhaEnderecoIntl(r));
+  adicionarRodape(item, r.telefone, r.email);
 
-  if (r.end) {
-    const end = document.createElement("div");
-    end.className = "parceiro-end";
-    end.textContent = r.end;
-    item.appendChild(end);
-  }
+  tornarSelecionavel(item, "intl", r, texto);
+  return item;
+}
 
+async function buscarRegistros(arquivo) {
+  const resposta = await fetch(arquivo);
+  if (!resposta.ok) throw new Error(`${arquivo} respondeu ${resposta.status}`);
+
+  const conteudo = await resposta.json();
+  return conteudo.registros;
+}
+
+function chaveBusca(campos) {
+  const digitos = campos
+    .filter((campo) => campo && /\d/.test(campo))
+    .map((campo) => campo.replace(/\D/g, ""));
+
+  return semAcento([...campos, ...digitos].filter(Boolean).join(" "));
+}
+
+function adicionarUnidade(item, r) {
+  const unidade = unidadeVisivel(r);
+  if (!unidade) return;
+
+  const linha = document.createElement("div");
+  linha.className = "parceiro-unidade";
+  linha.textContent = unidade;
+  item.appendChild(linha);
+}
+
+function adicionarLocalEndereco(item, local, endereco) {
+  const linhaLocal = document.createElement("div");
+  linhaLocal.className = "parceiro-local";
+  linhaLocal.textContent = local;
+  item.appendChild(linhaLocal);
+
+  const linhaEndereco = document.createElement("div");
+  linhaEndereco.className = "parceiro-end";
+  linhaEndereco.textContent = endereco;
+  item.appendChild(linhaEndereco);
+}
+
+function adicionarRodape(item, telefone, email) {
   const rodape = document.createElement("div");
   rodape.className = "parceiro-rodape";
 
   const tel = document.createElement("span");
   tel.className = "parceiro-tel";
-  tel.textContent = r.tel || "Sem telefone";
+  tel.textContent = telefone || "Sem telefone";
   rodape.appendChild(tel);
 
   item.appendChild(rodape);
 
-  tornarSelecionavel(item, "intl", r, texto);
-  return item;
+  if (!email) return;
+
+  const faixaEmail = document.createElement("div");
+  faixaEmail.className = "parceiro-rodape cartao-email";
+
+  const endereco = document.createElement("span");
+  endereco.className = "parceiro-tel";
+  endereco.textContent = email;
+  faixaEmail.appendChild(endereco);
+
+  item.appendChild(faixaEmail);
 }
+
 
 /* Busca vinda do menu de contexto ----------------------------------
    O background guarda o pedido no storage de sessao antes de abrir o

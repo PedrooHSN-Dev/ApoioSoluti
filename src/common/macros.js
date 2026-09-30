@@ -90,10 +90,12 @@ if (!window.ApoioMacros) {
         syncIndisponivel = true;
         console.warn("Apoio Soluti: macros sem sincronizacao:", erro.message);
 
-        // o local ja tem tudo. Limpar o sync evita o pior caso: uma versao
-        // parcial/antiga la sobrescrevendo a boa na proxima leitura
+        // o local ja tem tudo. Limpar so as chaves DESTE modulo: o sync tambem
+        // guarda os modelos de e-mail e a rotina do dia, que nao sao nossos
         try {
-          await chrome.storage.sync.clear();
+          const dados = await chrome.storage.sync.get(null);
+          const nossas = Object.keys(dados).filter(ehChaveDeMacro);
+          if (nossas.length) await chrome.storage.sync.remove(nossas);
         } catch {}
 
         return false;
@@ -137,6 +139,52 @@ if (!window.ApoioMacros) {
       });
     }
 
+    /* Macros da equipe que a pessoa tirou de vista ------------------------
+       Os da equipe moram no codigo e nao se apagam: "excluir" um deles guarda
+       o id aqui e ele deixa de aparecer no popup e de expandir na digitacao.
+       "Restaurar" esvazia a lista. Mesma regra dos macros: local sempre,
+       sync quando der. A chave NAO comeca com "macrosParte", entao a limpeza
+       do sync dos macros nao a leva junto. */
+    const CHAVE_OCULTOS = "macrosEquipeOcultos";
+
+    function soIds(lista) {
+      return Array.isArray(lista) ? lista.filter((id) => typeof id === "string") : [];
+    }
+
+    async function lerOcultos() {
+      try {
+        const doSync = (await chrome.storage.sync.get(CHAVE_OCULTOS))[CHAVE_OCULTOS];
+        if (Array.isArray(doSync)) return soIds(doSync);
+      } catch {}
+
+      try {
+        return soIds((await chrome.storage.local.get(CHAVE_OCULTOS))[CHAVE_OCULTOS]);
+      } catch {
+        return [];
+      }
+    }
+
+    async function salvarOcultos(ids) {
+      const lista = [...new Set(soIds(ids))];
+      await chrome.storage.local.set({ [CHAVE_OCULTOS]: lista });
+
+      if (syncIndisponivel) return false;
+      try {
+        await chrome.storage.sync.set({ [CHAVE_OCULTOS]: lista });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function aoMudarOcultos(callback) {
+      chrome.storage.onChanged.addListener((mudancas, area) => {
+        if ((area === "sync" || area === "local") && mudancas[CHAVE_OCULTOS]) {
+          lerOcultos().then(callback);
+        }
+      });
+    }
+
     function saudacaoAtual() {
       const h = new Date().getHours();
       // 6h-11h59 bom dia; 12h-17h59 boa tarde; resto boa noite
@@ -161,6 +209,9 @@ if (!window.ApoioMacros) {
       return texto;
     }
 
-    return { ler, salvar, aoMudar, saudacaoAtual, resolverResposta };
+    return {
+      ler, salvar, aoMudar, lerOcultos, salvarOcultos, aoMudarOcultos,
+      saudacaoAtual, resolverResposta
+    };
   })();
 }

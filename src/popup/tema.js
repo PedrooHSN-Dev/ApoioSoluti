@@ -31,6 +31,21 @@
   try {
     if (new URLSearchParams(location.search).get("janela") === "1") {
       document.documentElement.classList.add("modo-janela");
+
+      // Escala da interface pelo tamanho da JANELA (outerWidth/outerHeight
+      // nao mudam com o zoom, entao nao ha laco). A referencia e o layout
+      // desenhado para ~1000x700; a ampliacao e suavizada (55% do que a
+      // tela "pediria") e limitada a 1.4x, para nao virar letreiro.
+      const escalar = () => {
+        const base = Math.min(window.outerWidth / 1000, window.outerHeight / 700);
+        const escala = Math.max(1, Math.min(1.4, 1 + (base - 1) * 0.55));
+        document.documentElement.style.setProperty(
+          "--escala-janela",
+          (Math.round(escala * 20) / 20).toString()
+        );
+      };
+      escalar();
+      window.addEventListener("resize", escalar);
     }
   } catch {
     // sem URL valida pra ler: segue com o tamanho fixo, sem travar nada

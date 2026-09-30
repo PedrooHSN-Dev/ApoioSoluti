@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Apoio Soluti",
   "version": "5.0",
-  "description": "Gerenciador de macros, extrator de texto da tela e atalhos de AR para atendimento.",
+  "description": "Gerenciador de macros, extrator de texto da tela, consultas de AR, e-mails e atalhos para atendimento.",
   "permissions": [
     "storage",
     "offscreen",
@@ -10,7 +10,8 @@
     "contextMenus",
     "alarms",
     "tabs",
-    "cookies"
+    "cookies",
+    "tabGroups"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -35,7 +36,9 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "<all_urls>"
+      ],
       "js": [
         "src/common/macros.js",
         "src/content/equipe.js",
@@ -47,23 +50,42 @@
       "all_frames": true
     },
     {
-      "matches": ["https://*.acsoluti.com.br/*"],
-      "js": ["src/content/gridlocalizar.js"],
+      "matches": [
+        "https://*.acsoluti.com.br/*"
+      ],
+      "js": [
+        "src/content/gridlocalizar.js"
+      ],
       "run_at": "document_start"
     }
   ],
   "commands": {
-    "extrair-texto": {
-      "suggested_key": {
-        "default": "Ctrl+M"
-      },
-      "description": "Extrair texto da tela"
+    "_execute_action": {
+      "description": "Ativar a extensão"
     },
     "abrir-janela": {
       "suggested_key": {
         "default": "Ctrl+Shift+Y"
       },
       "description": "Abrir o Apoio Soluti em uma janela separada"
+    },
+    "abrir-solicitacao": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S"
+      },
+      "description": "Abrir solicitação na AR (código selecionado)"
+    },
+    "comecar-o-dia": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Abrir os sistemas do atendimento"
+    },
+    "extrair-texto": {
+      "suggested_key": {
+        "default": "Ctrl+M"
+      },
+      "description": "Extrair texto da tela"
     }
   },
   "content_security_policy": {

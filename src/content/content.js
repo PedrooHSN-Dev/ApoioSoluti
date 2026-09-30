@@ -18,6 +18,8 @@ if (!window.__apoioSolutiCarregado) {
   const EQUIPE = window.MACROS_EQUIPE || [];
 
   let macros = [];
+  let ultimosDoUsuario = [];
+  let ocultos = [];
   let aplicando = false;
 
   function normalizar(lista, origem) {
@@ -34,12 +36,15 @@ if (!window.__apoioSolutiCarregado) {
   }
 
   function montarLista(macrosUsuario) {
+    ultimosDoUsuario = macrosUsuario;
     const usuario = normalizar(macrosUsuario, "usuario");
     const usados = new Set(usuario.map((item) => item.comando.toLowerCase()));
 
     // macro pessoal com o mesmo comando tem prioridade sobre o da equipe
+    // os que a pessoa "excluiu" da equipe (ocultos) tambem saem
     const equipe = normalizar(EQUIPE, "equipe").filter(
-      (item) => !usados.has(item.comando.toLowerCase())
+      (item) =>
+        !usados.has(item.comando.toLowerCase()) && !ocultos.includes(item.id)
     );
 
     const lista = [...usuario, ...equipe];
@@ -64,6 +69,7 @@ if (!window.__apoioSolutiCarregado) {
 
   async function carregarMacros() {
     try {
+      ocultos = await window.ApoioMacros.lerOcultos();
       macros = montarLista(await window.ApoioMacros.ler());
     } catch (erro) {
       console.error("Apoio Soluti: erro ao carregar macros:", erro);
@@ -73,6 +79,11 @@ if (!window.__apoioSolutiCarregado) {
 
   window.ApoioMacros.aoMudar((lista) => {
     macros = montarLista(lista);
+  });
+
+  window.ApoioMacros.aoMudarOcultos((ids) => {
+    ocultos = ids;
+    macros = montarLista(ultimosDoUsuario);
   });
 
   function ehLimite(caractere) {
@@ -643,6 +654,15 @@ if (!window.__apoioSolutiCarregado) {
     if (mensagem?.tipo === "capturaPronta") aoPrintPronto();
     // resultado de uma leitura que comecou fora da pagina (menu de contexto)
     if (mensagem?.tipo === "resultadoOcr") mostrarCartao(mensagem.dados || {});
+    // recado de algo que comecou fora da pagina (atalho Ctrl+Shift+S): reusa o
+    // cartao de leitura, que ja tem o estilo de erro
+    if (mensagem?.tipo === "aviso") {
+      mostrarCartao(
+        mensagem.estilo === "ok"
+          ? { texto: mensagem.texto || "" }
+          : { erro: mensagem.texto || "" }
+      );
+    }
   });
 
   // ponte para o visualizador de imagem (src/content/visualizador.js), que

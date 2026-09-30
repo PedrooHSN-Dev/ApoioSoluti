@@ -2,7 +2,14 @@
 // Desenvolvido por Vitor Azevedo (v1 e v2).
 // Reescrito e mantido por Vinícius Zoccoli e Pedro H. S. Nascimento (v3 em diante).
 
-importScripts('./arrow.js');
+importScripts(
+  './arrow.js',
+  // tabela dos sistemas, rotina do dia, abertura do dia e e-mail pelo Outlook
+  '../data/sistemas.js',
+  '../common/rotina-dia.js',
+  './abertura-dia.js',
+  './email-outlook.js'
+);
 
 const PAGINAS_BLOQUEADAS = /^(chrome|edge|about|devtools|view-source|chrome-extension|edge-extension|moz-extension):|^https:\/\/(chromewebstore\.google\.com|microsoftedge\.microsoft\.com)/i;
 
@@ -1212,26 +1219,224 @@ chrome.runtime.onMessage.addListener((mensagem, remetente, responder) => {
 
 
 /* ==================================================================
-   Indicadores de Sessão
-   ================================================================== */
-const DOMINIOS_SESSAO = { sdeal: "sdeal.soluti.com.br", gestao: "solutivd.gestao.plus", wings: "wingsportal.com.br" };
+   Indicadores de sessão — baseados na tabela src/data/sistemas.js
 
-async function verificarSessao(dominio) {
-  try {
+   Ter cookie no dominio NAO quer dizer estar logado: visita anonima,
+   rastreio e a propria ida ate a tela de login deixam cookie. Por isso
+   cada sistema e verificado pelo que ele realmente faz:
+
+   - cookie / sso: pede a tela inicial com os cookies do navegador. Sem
+     sessao o sistema redireciona para outro dominio (login da Microsoft),
+     para uma rota de login, ou mostra o formulario de senha.
+   - token (Wings, GO): SPA, a tela inicial e a mesma logada ou nao. So
+     vale um token de verdade, guardado ou lido de uma aba ja aberta.
+
+   O resultado tem tres estados: true, false, e ausente = "nao da para
+   saber agora" (falha de rede, ou sistema de token sem aba aberta). Quem
+   le nao deve tratar ausente como "sem login".
+   ================================================================== */
+const SESSAO_CACHE_MS = 60000;
+const SESSAO_CACHE_CHAVE = "sessoesVerificadas";
+const SESSAO_TIMEOUT_MS = 7000;
+
+function dominiosDoSistema(sistema) {
+  return [].concat(sistema.cookie || []);
+}
+
+function hostDoSistema(host, sistema) {
+  return dominiosDoSistema(sistema).some((d) => host === d || host.endsWith("." + d));
+}
+
+const ROTA_DE_LOGIN = /(^|[\/._-])(login|logon|signin|sign-in|entrar|autenticar|authorize|oauth2?)([\/._?-]|$)/i;
+
+async function temCookie(sistema) {
+  for (const dominio of dominiosDoSistema(sistema)) {
     const cookies = await chrome.cookies.getAll({ domain: dominio });
-    return cookies.length > 0;
+    if (cookies.length > 0) return true;
+  }
+  return false;
+}
+
+// le so o comeco da pagina: o formulario de login aparece cedo, e o HTML do
+// Outlook logado e grande
+async function lerComecoDaPagina(resposta, limite = 200000) {
+  if (!resposta.body) return "";
+  const leitor = resposta.body.getReader();
+  const decodificador = new TextDecoder();
+  let texto = "";
+  try {
+    while (texto.length < limite) {
+      const { done, value } = await leitor.read();
+      if (done) break;
+      texto += decodificador.decode(value, { stream: true });
+    }
+  } finally {
+    leitor.cancel().catch(() => {});
+  }
+  return texto;
+}
+
+async function sessaoPorSonda(sistema) {
+  // sem nenhum cookie nao ha o que testar: poupa a requisicao
+  if (!(await temCookie(sistema))) return false;
+
+  const controle = new AbortController();
+  const timer = setTimeout(() => controle.abort(), SESSAO_TIMEOUT_MS);
+
+  try {
+    const resposta = await fetch(sistema.urlInicial, {
+      credentials: "include",
+      redirect: "follow",
+      cache: "no-store",
+      signal: controle.signal
+    });
+
+    const final = new URL(resposta.url);
+    if (resposta.status === 401 || resposta.status === 403) return false;
+    if (!resposta.ok) return undefined;
+    if (!hostDoSistema(final.hostname, sistema)) return false;
+    if (ROTA_DE_LOGIN.test(final.pathname)) return false;
+
+    const comeco = await lerComecoDaPagina(resposta);
+    if (/<input[^>]+type\s*=\s*["']?password/i.test(comeco)) return false;
+
+    return true;
   } catch {
-    return false;
+    return undefined;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-async function verificarSessoes() {
-  const entradas = await Promise.all(
-    Object.entries(DOMINIOS_SESSAO).map(async ([chave, dominio]) => [chave, await verificarSessao(dominio)])
-  );
-  return Object.fromEntries(entradas);
+// token expirado nao e sessao: se for JWT, confere o "exp"
+function tokenAindaValido(token) {
+  if (!token) return false;
+  const partes = String(token).split(".");
+  if (partes.length !== 3) return true;
+
+  try {
+    const carga = JSON.parse(atob(partes[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if (carga.exp && carga.exp * 1000 < Date.now()) return false;
+  } catch {}
+  return true;
 }
 
+async function sessaoPorToken(sistema) {
+  const guardado = (await chrome.storage.session.get(sistema.chave))[sistema.chave];
+  if (guardado) {
+    if (tokenAindaValido(guardado)) return true;
+    await chrome.storage.session.remove(sistema.chave).catch(() => {});
+  }
+
+  const abertas = await chrome.tabs.query({ url: `${sistema.origem}/*` });
+  // sem aba aberta nao da para olhar o storage do site: nao sei
+  if (!abertas.length) return undefined;
+
+  try {
+    const [{ result }] = await comLimiteDeTempo(
+      chrome.scripting.executeScript({ target: { tabId: abertas[0].id }, func: extrairTokenDoStorage }),
+      4000,
+      "TIMEOUT_ABA_ABERTA"
+    );
+    if (result && tokenAindaValido(result)) {
+      await chrome.storage.session.set({ [sistema.chave]: result });
+      return true;
+    }
+    return false;
+  } catch {
+    return undefined;
+  }
+}
+
+async function verificarSessoes(forcar = false) {
+  let cache = {};
+  try {
+    const dados = (await chrome.storage.session.get(SESSAO_CACHE_CHAVE))[SESSAO_CACHE_CHAVE];
+    if (dados && Date.now() - dados.quando < SESSAO_CACHE_MS) cache = dados.valores || {};
+  } catch {}
+
+  const entradas = await Promise.all(
+    SISTEMAS.filter((sistema) => sistema.cookie || sistema.chave).map(async (sistema) => {
+      if (!forcar && sistema.id in cache) return [sistema.id, cache[sistema.id]];
+
+      try {
+        const ativa = sistema.entra === "token"
+          ? await sessaoPorToken(sistema)
+          : await sessaoPorSonda(sistema);
+        return [sistema.id, ativa];
+      } catch {
+        return [sistema.id, undefined];
+      }
+    })
+  );
+
+  // so o que foi decidido entra na resposta e no cache
+  const resultado = Object.fromEntries(entradas.filter(([, v]) => typeof v === "boolean"));
+
+  try {
+    await chrome.storage.session.set({
+      [SESSAO_CACHE_CHAVE]: { quando: Date.now(), valores: resultado }
+    });
+  } catch {}
+
+  return resultado;
+}
+
+// uma troca de sessao (login/logout) invalida o que foi lembrado
+chrome.cookies?.onChanged?.addListener(() => {
+  chrome.storage.session.remove(SESSAO_CACHE_CHAVE).catch(() => {});
+});
+
 chrome.runtime.onMessage.addListener((mensagem, remetente, responder) => {
-  if (mensagem?.tipo === "verificarSessoes") { verificarSessoes().then(responder); return true; }
+  if (mensagem?.tipo === "verificarSessoes") {
+    verificarSessoes(Boolean(mensagem.forcar)).then(responder).catch(() => responder({}));
+    return true;
+  }
+});
+
+/* ==================================================================
+   Atalho Ctrl+Shift+S: abre a solicitação do código selecionado
+   ================================================================== */
+async function selecaoDaAba(abaId) {
+  const resultados = await chrome.scripting.executeScript({
+    target: { tabId: abaId, allFrames: true },
+    func: () => (window.getSelection?.() || "").toString()
+  });
+  for (const { result } of resultados) {
+    const texto = (result || "").trim();
+    if (texto) return texto;
+  }
+  return "";
+}
+
+async function avisarNaAba(aba, texto, estilo = "erro") {
+  if (!aba?.id || !podeUsar(aba.url)) return;
+  try {
+    await enviarParaAba(aba.id, { tipo: "aviso", texto, estilo });
+  } catch (erro) {
+    console.warn("Apoio Soluti: sem aviso na página:", erro.message);
+  }
+}
+
+chrome.commands.onCommand.addListener(async (comando) => {
+  if (comando !== "abrir-solicitacao") return;
+
+  const [aba] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!aba || !podeUsar(aba.url)) return;
+
+  let selecao = "";
+  try {
+    selecao = await selecaoDaAba(aba.id);
+  } catch (erro) {
+    console.warn("Apoio Soluti: não consegui ler a seleção:", erro.message);
+  }
+
+  const codigo = limparCodigo(selecao);
+  if (!codigo) {
+    avisarNaAba(aba, "Selecione o código da solicitação e use o atalho de novo.");
+    return;
+  }
+
+  const resposta = await abrirSolicitacao(codigo);
+  if (resposta?.erro) avisarNaAba(aba, resposta.erro);
 });
