@@ -8,6 +8,13 @@ Extensão de navegador (Chrome, Manifest V3, sem build: arquivos carregados dire
 - Nunca use `innerHTML` com texto vindo de sites: sempre `textContent` (ver `src/popup/aba-andamento.js`).
 - Dados de clientes (nome, CPF, e-mail, telefone) e tokens do login (`auth=`, `retorno=` nas URLs de login) **não** devem ser gravados em arquivos, commits, testes ou anotações. Em testes use dados falsos.
 - Não adicionar dependências nem etapa de build. `host_permissions` já é `<all_urls>`.
+- Não apagar arquivos de `src/data/` (inclusive `parceiros-dados.json` e `parceiros-intl.js`): o usuário usa os dados dos parceiros na aba Lojas, mesmo quando a busca por nome do arquivo não acha referência.
+- Commits e PRs: em português, sem citar o Claude (nada de "Co-Authored-By: Claude", link de sessão ou "Generated with Claude Code") e escritos para quem não acompanhou a conversa entender. Padrão do PR:
+  - **Título:** curto, dizendo o que muda para o usuário (ex.: "Consulta da solicitação dentro do popup").
+  - **O que mudou:** lista do que a pessoa vai notar na extensão.
+  - **Por quê:** o motivo da mudança, em uma ou duas frases.
+  - **Como testar:** passos no Chrome (recarregar em `chrome://extensions`, qual aba abrir, o que conferir).
+  - **Versão:** a versão do `manifest.json` da entrega.
 
 ## Estrutura
 - `src/popup/` — interface. `popup.html` (abas na barra lateral + painéis), `popup.js` (principal, ~136 KB, define `$`, `mostrarAviso`, `salvarNoHistorico`, `registrarHistorico`, `trocarAba`…), `aba-*.js` (abas separadas, scripts clássicos que usam os globais do `popup.js`), `popup.css` (tokens de cor no topo, tema escuro).
