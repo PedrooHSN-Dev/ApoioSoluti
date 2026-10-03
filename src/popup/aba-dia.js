@@ -1,10 +1,10 @@
 // Aba Começar o dia: põe os sistemas do atendimento no ar de uma vez, e é
 // onde a lista do que abre é montada.
 //
-// A lista mistura os sistemas de src/dados/sistemas.js (que o resto da
-// extensão também usa, e por isso só se desmarca, não se apaga) com os
-// endereços que você acrescentar. Quem guarda e junta as duas origens é o
-// src/comum/rotina-dia.js; quem abre é o background.
+// A lista mistura os sistemas de src/dados/sistemas.js com os endereços que
+// você acrescentar. Os dois podem sair; a diferença é que o sistema da
+// tabela volta com "Restaurar", e o endereço seu, não. Quem guarda e junta
+// as duas origens é o src/comum/rotina-dia.js; quem abre é o background.
 
 // como a extensão entra em cada sistema, em uma palavra. Vale para saber o
 // que esperar: "SSO" é a Microsoft/Azure pedindo login (e possivelmente
@@ -24,34 +24,71 @@ let itensDaRotina = [];
 
 /* Lista -------------------------------------------------------------- */
 
+// O que está na tela. Os sistemas removidos continuam em itensDaRotina (é o
+// que impede a lista de trazê-los de volta), mas não se desenham nem contam.
+function itensVisiveis() {
+  return itensDaRotina.filter((item) => !ehItemRemovido(item));
+}
+
+// Põe itensDaRotina na ordem dos ids recebidos. Os ids vêm da tela, então
+// os removidos não estão entre eles: vão para o fim, em vez de sumirem.
+function aplicarOrdem(ids) {
+  const porId = new Map(itensDaRotina.map((item) => [item.id, item]));
+  const naTela = new Set(ids);
+
+  itensDaRotina = [
+    ...ids.map((id) => porId.get(id)).filter(Boolean),
+    ...itensDaRotina.filter((item) => !naTela.has(item.id))
+  ];
+}
+
 // Reordena a lista guardada para bater com a ordem em que os cartões
 // ficaram na tela. Não redesenha: o DOM já está na ordem certa, e
 // redesenhar aqui faria o cartão recém-solto piscar.
 function reordenarRotina(ids) {
-  const porId = new Map(itensDaRotina.map((item) => [item.id, item]));
-  itensDaRotina = ids.map((id) => porId.get(id)).filter(Boolean);
+  aplicarOrdem(ids);
   salvarRotina(itensDaRotina);
 }
 
 // Alt+setas move o cartão em foco. O arrasto é o caminho normal, mas ele
 // não existe para quem navega por teclado — e aí a ordem ficaria travada.
 function moverPorTeclado(id, passo) {
-  const de = itensDaRotina.findIndex((item) => item.id === id);
+  const visiveis = itensVisiveis();
+  const de = visiveis.findIndex((item) => item.id === id);
   const para = de + passo;
-  if (de < 0 || para < 0 || para >= itensDaRotina.length) return;
+  if (de < 0 || para < 0 || para >= visiveis.length) return;
 
-  const [item] = itensDaRotina.splice(de, 1);
-  itensDaRotina.splice(para, 0, item);
+  const [item] = visiveis.splice(de, 1);
+  visiveis.splice(para, 0, item);
 
+  aplicarOrdem(visiveis.map((visivel) => visivel.id));
   salvarRotina(itensDaRotina);
   desenharRotina();
   $(`diaCartao-${id}`)?.focus();
 }
 
 function removerItem(id) {
-  itensDaRotina = itensDaRotina.filter((item) => item.id !== id);
+  const item = itensDaRotina.find((guardado) => guardado.id === id);
+  const nome = sistemaDoItem(item)?.nome || "O endereço";
+
+  itensDaRotina = removerDaRotina(itensDaRotina, id);
   salvarRotina(itensDaRotina);
   desenharRotina();
+
+  mostrarAviso(
+    $("avisoDia"),
+    ehItemExtra(item)
+      ? `"${nome}" saiu da lista.`
+      : `"${nome}" saiu da lista — "Restaurar" traz de volta.`,
+    "ok"
+  );
+}
+
+function restaurarPadroes() {
+  itensDaRotina = restaurarPadroesDaRotina(itensDaRotina);
+  salvarRotina(itensDaRotina);
+  desenharRotina();
+  mostrarAviso($("avisoDia"), "Os sistemas da extensão voltaram para a lista.", "ok");
 }
 
 function criarLinhaDaRotina(item) {
@@ -122,13 +159,19 @@ function criarLinhaDaRotina(item) {
   linha.appendChild(texto);
   linha.appendChild(sessao);
 
-  // só sai o que você pôs: os sistemas da tabela são usados pelas abas de
-  // consulta, e apagar um aqui deixaria aquelas quebradas
-  if (ehItemExtra(item)) {
-    linha.appendChild(
-      criarBotaoIcone("remover", "Remover da lista", ICONE_LIXEIRA, () => removerItem(item.id))
-    );
-  }
+  // O sistema da tabela também sai. Tirá-lo daqui não mexe nas abas de
+  // consulta — elas leem src/dados/sistemas.js direto, não esta lista —,
+  // então o estrago possível é só ele não abrir de manhã, e "Restaurar"
+  // desfaz. Por isso a diferença fica no texto do botão, não na existência
+  // dele: o que você acrescentou some de vez.
+  linha.appendChild(
+    criarBotaoIcone(
+      "remover",
+      ehItemExtra(item) ? "Remover da lista" : "Tirar da lista (dá para restaurar)",
+      ICONE_LIXEIRA,
+      () => removerItem(item.id)
+    )
+  );
 
   return linha;
 }
@@ -137,17 +180,23 @@ function desenharRotina() {
   const lista = $("diaSistemas");
   lista.innerHTML = "";
 
-  itensDaRotina.forEach((item) => {
+  itensVisiveis().forEach((item) => {
     const linha = criarLinhaDaRotina(item);
     if (linha) lista.appendChild(linha);
   });
+
+  // sem nada removido o botão não tem o que fazer, e some
+  $("restaurarPadroesBtn").classList.toggle(
+    "hidden",
+    !itensDaRotina.some(ehItemRemovido)
+  );
 
   atualizarContagemDoDia();
   pintarSessoesDoDia();
 }
 
 function atualizarContagemDoDia() {
-  const total = itensDaRotina.filter((item) => item.ligado).length;
+  const total = itensVisiveis().filter((item) => item.ligado).length;
 
   $("diaContador").textContent =
     total === 1 ? "1 endereço na rotina" : `${total} endereços na rotina`;
@@ -163,7 +212,7 @@ async function pintarSessoesDoDia(forcar = false) {
     return; // service worker reiniciando: os rótulos ficam como estão
   }
 
-  itensDaRotina.forEach((item) => {
+  itensVisiveis().forEach((item) => {
     const alvo = $(`diaSessao-${item.id}`);
     const sistema = sistemaDoItem(item);
     if (!alvo || !sistema) return;
@@ -223,13 +272,10 @@ function adicionarEndereco() {
 
 $("novoEnderecoBtn").addEventListener("click", () => {
   $("formularioDia").classList.remove("hidden");
-
-  // os dois formulários ocupam o mesmo lugar: abrir um fecha o outro
-  $("blocoBackup").classList.add("hidden");
-
   $("diaNovoNome").focus();
 });
 
+$("restaurarPadroesBtn").addEventListener("click", restaurarPadroes);
 $("cancelarEnderecoBtn").addEventListener("click", fecharFormularioDia);
 $("salvarEnderecoBtn").addEventListener("click", adicionarEndereco);
 

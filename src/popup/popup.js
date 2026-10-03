@@ -544,113 +544,9 @@ window.ApoioMacros.aoMudarOcultos((ids) => {
   renderizarLista();
 });
 
-function exportarMacros() {
-  if (!meusMacros.length) {
-    alert("Você ainda não tem macros para exportar.");
-    return;
-  }
-
-  const dados = {
-    versao: chrome.runtime.getManifest().version,
-    exportadoEm: new Date().toISOString(),
-    macros: meusMacros.map(({ comando, resposta }) => ({ comando, resposta }))
-  };
-
-  const blob = new Blob([JSON.stringify(dados, null, 2)], {
-    type: "application/json"
-  });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `apoio-soluti-macros-${new Date().toISOString().slice(0, 10)}.json`;
-  link.click();
-
-  URL.revokeObjectURL(url);
-}
-
-function extrairMacrosImportados(json) {
-  const lista = Array.isArray(json) ? json : json?.macros;
-  if (!Array.isArray(lista)) return null;
-
-  return lista.filter(
-    (item) =>
-      item &&
-      typeof item.comando === "string" &&
-      item.comando.trim() &&
-      typeof item.resposta === "string" &&
-      item.resposta.trim()
-  );
-}
-
-async function importarMacros(arquivo) {
-  let texto;
-  try {
-    texto = await arquivo.text();
-  } catch {
-    alert("Não foi possível ler o arquivo.");
-    return;
-  }
-
-  let json;
-  try {
-    json = JSON.parse(texto);
-  } catch {
-    alert("Arquivo inválido: não é um JSON válido.");
-    return;
-  }
-
-  const importados = extrairMacrosImportados(json);
-
-  if (!importados) {
-    alert("Arquivo inválido: formato de macros não reconhecido.");
-    return;
-  }
-
-  if (!importados.length) {
-    alert("Nenhum macro válido encontrado no arquivo.");
-    return;
-  }
-
-  let novos = 0;
-  let atualizados = 0;
-
-  importados.forEach((item) => {
-    const comando = item.comando.trim();
-    const resposta = item.resposta.trim();
-
-    // importados sempre entram como macro pessoal, mesmo que tenham vindo
-    // de um macro "da equipe" exportado por outra pessoa
-    const existente = meusMacros.find(
-      (macro) => macro.comando.toLowerCase() === comando.toLowerCase()
-    );
-
-    if (existente) {
-      existente.resposta = resposta;
-      atualizados += 1;
-    } else {
-      meusMacros.push({ id: gerarId(), comando, resposta, origem: "usuario" });
-      novos += 1;
-    }
-  });
-
-  await salvarMacros();
-  renderizarLista();
-
-  alert(`Importação concluída: ${novos} novo(s), ${atualizados} atualizado(s).`);
-}
-
-$("exportarMacrosBtn").addEventListener("click", exportarMacros);
-
-$("importarMacrosBtn").addEventListener("click", () => {
-  $("importarMacrosInput").click();
-});
-
-$("importarMacrosInput").addEventListener("change", async (evento) => {
-  const [arquivo] = evento.target.files;
-  evento.target.value = "";
-  if (arquivo) await importarMacros(arquivo);
-});
+// O exportar/importar de macros mudou de lugar: agora e uma linha da aba
+// Importar (src/popup/backup.js), junto com os modelos de e-mail e a lista
+// do dia. Eram tres pares de botoes com tres formatos quase iguais.
 
 // outra janela do popup, outro dispositivo pelo sync, ou o proprio content
 // script: qualquer mudanca redesenha a lista
@@ -660,7 +556,9 @@ window.ApoioMacros.aoMudar((lista) => {
   renderizarLista();
 });
 
-$("versao").textContent = `v${chrome.runtime.getManifest().version}`;
+const versaoAtual = `v${chrome.runtime.getManifest().version}`;
+$("versao").textContent = versaoAtual;
+$("sobreVersao").textContent = versaoAtual;
 
 /* Tema ------------------------------------------------------------
    Sem escolha salva, o popup segue o navegador. O botao grava uma
@@ -672,26 +570,92 @@ $("versao").textContent = `v${chrome.runtime.getManifest().version}`;
    aplica e o src/popup/tema.js, carregado no <head>.
    ------------------------------------------------------------------ */
 
+/* Claro/escuro e cor de destaque --------------------------------------
+   Dois eixos: o modo manda no fundo, a cor manda so no realce. As duas
+   escolhas moram no localStorage (sincrono) e sao aplicadas pelo tema.js,
+   no <head>, antes da primeira pintura — ver o comentario de la.
+
+   "Padrao" nao e uma cor: e a ausencia de escolha. Por isso apaga a chave
+   e tira o data-cor, deixando o verde da marca valer.
+   -------------------------------------------------------------------- */
+
 function temaEfetivo() {
   const escolhido = document.documentElement.dataset.tema;
   if (escolhido) return escolhido;
 
-  return matchMedia("(prefers-color-scheme: dark)").matches
-    ? "escuro"
-    : "claro";
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro";
+}
+
+function guardarEscolha(chave, valor) {
+  try {
+    if (valor) localStorage.setItem(chave, valor);
+    else localStorage.removeItem(chave);
+  } catch {
+    // modo privado ou armazenamento bloqueado: vale so nesta janela
+  }
 }
 
 $("temaBtn").addEventListener("click", () => {
   const novo = temaEfetivo() === "escuro" ? "claro" : "escuro";
-
   document.documentElement.dataset.tema = novo;
+  guardarEscolha("tema", novo);
+});
 
-  try {
-    localStorage.setItem("tema", novo);
-  } catch {
-    // modo privado ou armazenamento bloqueado: a escolha vale so nesta janela
+const opcoesDeCor = [...document.querySelectorAll(".cor-opcao")];
+
+function corEscolhida() {
+  return document.documentElement.dataset.cor || "padrao";
+}
+
+function marcarCorEmVigor() {
+  const atual = corEscolhida();
+  opcoesDeCor.forEach((opcao) => {
+    opcao.setAttribute(
+      "aria-checked",
+      opcao.dataset.corEscolha === atual ? "true" : "false"
+    );
+  });
+}
+
+function aplicarCor(escolha) {
+  if (escolha === "padrao") delete document.documentElement.dataset.cor;
+  else document.documentElement.dataset.cor = escolha;
+
+  guardarEscolha("cor", escolha === "padrao" ? null : escolha);
+  marcarCorEmVigor();
+}
+
+function abrirMenuDeCor(abrir) {
+  $("corMenu").classList.toggle("hidden", !abrir);
+  $("corBtn").setAttribute("aria-expanded", abrir ? "true" : "false");
+}
+
+opcoesDeCor.forEach((opcao) => {
+  opcao.addEventListener("click", () => {
+    aplicarCor(opcao.dataset.corEscolha);
+    abrirMenuDeCor(false);
+  });
+});
+
+$("corBtn").addEventListener("click", (evento) => {
+  evento.stopPropagation();
+  abrirMenuDeCor($("corMenu").classList.contains("hidden"));
+});
+
+// clicar fora e Esc fecham. Sem isto o menu ficaria aberto por cima do
+// painel ate alguem acertar o botao de novo.
+document.addEventListener("click", (evento) => {
+  if (!evento.target.closest(".cor-escolha")) abrirMenuDeCor(false);
+});
+
+document.addEventListener("keydown", (evento) => {
+  if (evento.key === "Escape" && !$("corMenu").classList.contains("hidden")) {
+    abrirMenuDeCor(false);
+    $("corBtn").focus();
   }
 });
+
+marcarCorEmVigor();
 
 $("abrirJanelaBtn").addEventListener("click", async () => {
   try {
@@ -708,6 +672,9 @@ $("abrirJanelaBtn").addEventListener("click", async () => {
 
 const abas = document.querySelectorAll(".aba");
 const paineis = {
+  inicio: $("painel-inicio"),
+  importar: $("painel-importar"),
+  sobre: $("painel-sobre"),
   dia: $("painel-dia"),
   emails: $("painel-emails"),
   macros: $("painel-macros"),
@@ -745,7 +712,7 @@ function limparErroNaAba(nome) {
 }
 
 /* Indicador de sessão (ponto verde/cinza) ---------------------------
-   Mostra se ja tem sessao ativa em S.Deal/Gestão+/Wings sem precisar
+   Mostra se ja tem sessao ativa em S.Deal/Gestão Online/Wings sem precisar
    buscar pra descobrir: o background consulta os cookies desses
    dominios assim que o popup abre. Depois disso, cada busca atualiza o
    ponto na hora — sucesso confirma sessao ativa, e um erro que fala em
@@ -792,7 +759,7 @@ async function atualizarIndicadoresDeSessao() {
 // fica de fora porque não usa cookie de sessão (ver DOMINIOS_SESSAO no
 // background.js).
 const PLATAFORMAS_COM_LOGIN_NA_BUSCA_UNIFICADA = [
-  { chave: "gestao", nome: "Gestão+" },
+  { chave: "gestao", nome: "Gestão Online" },
   { chave: "wings", nome: "Wings" }
 ];
 
@@ -920,7 +887,7 @@ aplicarBarraExpandida(document.documentElement.classList.contains("barra-expandi
 $("barraToggleBtn").addEventListener("click", alternarBarraLateral);
 
 // Ctrl+Tab / Ctrl+Shift+Tab troca de aba sem sair do popup — util pra
-// quem alterna bastante entre S.Deal/Gestão+/Wings no mesmo atendimento.
+// quem alterna bastante entre S.Deal/Gestão Online/Wings no mesmo atendimento.
 // Só entra em ação com Ctrl (sem Alt), pra não brigar com Tab puro, que
 // continua navegando entre os campos normalmente.
 document.addEventListener("keydown", (evento) => {
@@ -973,7 +940,7 @@ function mostrarAviso(elemento, texto, tipo, plataforma) {
 }
 
 /* Validação de CPF/CNPJ antes de buscar -------------------------------
-   Gestão+, Wings e Databricks buscam por CPF/CNPJ (S.Deal busca por
+   Gestão Online, Wings e Databricks buscam por CPF/CNPJ (S.Deal busca por
    número de voucher, então fica de fora). Documento com dígito
    verificador errado nunca vai voltar com resultado — então em vez de
    deixar a busca ir até o fim pra só então mostrar "Nenhum resultado.",
@@ -1005,7 +972,7 @@ function marcarCampoDocumento(campo) {
 }
 
 /* Histórico de buscas recentes ---------------------------------------
-   Cada aba de busca (Solicitação, S.Deal, Gestão+, Wings) guarda os
+   Cada aba de busca (Solicitação, S.Deal, Gestão Online, Wings) guarda os
    últimos valores buscados com sucesso, por escopo, no chrome.storage.local
    — assim sobrevive entre aberturas do popup. Clicar num item recente
    preenche o campo e (se a aba definir) já dispara a busca de novo.
@@ -1170,10 +1137,10 @@ function abrirSolicitacaoNaAr() {
 $("abrirArBtn").addEventListener("click", abrirSiteDaAr);
 $("abrirSolicitacaoBtn").addEventListener("click", abrirSolicitacaoNaAr);
 
-// Enter abre a solicitação — é a ação mais usada aqui; "Abrir site da AR"
-// continua disponível pelo botão, só não é mais o padrão do Enter.
+// Enter consulta a solicitação (aba Solicitação, aba-andamento.js); "Abrir
+// solicitação" e "Abrir site da AR" continuam nos botões.
 $("codigoSolicitacao").addEventListener("keydown", (evento) => {
-  if (evento.key === "Enter") $("abrirSolicitacaoBtn").click();
+  if (evento.key === "Enter") $("consultarAndamentoBtn").click();
 });
 
 registrarHistorico("solicitacao", {
@@ -1386,8 +1353,6 @@ async function buscarVoucherSDeal(forcarAtualizacao = false) {
   if (!forcarAtualizacao) {
     const emCache = await obterCache("sdeal", voucher);
     if (emCache && emCache.v === CACHE_VERSAO_SDEAL) {
-      console.log("[ApoioSoluti][S.Deal] resultado do cache:", emCache.dados);
-      console.log("[ApoioSoluti][S.Deal] codSolicitacao (cache):", extrairCodSolicitacaoSDeal(emCache.dados));
       renderizarResultadoSDeal(emCache.dados, voucher);
       mostrarAviso(aviso, "Busca carregada do cache (rápida).", "ok");
       $("atualizarSDealBtn").classList.remove("hidden");
@@ -1403,16 +1368,6 @@ async function buscarVoucherSDeal(forcarAtualizacao = false) {
 
   try {
     const resposta = await chrome.runtime.sendMessage({ tipo: "buscarVoucherSDeal", voucher });
-
-    // Log de depuração: confere no console do popup (clique com o botão
-    // direito na janela do Apoio Soluti > Inspecionar) o que voltou do
-    // background e se o código de solicitação veio junto. O background
-    // também loga a parte dele — esse log ali só aparece no console do
-    // service worker (chrome://extensions > Apoio Soluti > "service worker").
-    console.log("[ApoioSoluti][S.Deal] resposta do background:", resposta);
-    if (resposta?.dados) {
-      console.log("[ApoioSoluti][S.Deal] codSolicitacao (busca nova):", extrairCodSolicitacaoSDeal(resposta.dados));
-    }
 
     if (!resposta || resposta.erro) {
       const ehSessao = erroParecomSessao(resposta?.erro);
@@ -1479,7 +1434,7 @@ registrarHistorico("sdeal", {
   aoSelecionar: () => buscarVoucherSDeal()
 });
 
-/* Gestão+ --------------------------------------------------------------
+/* Gestão Online --------------------------------------------------------------
    Busca o historico de movimentacoes/vendas de um parceiro no
    solutivd.gestao.plus a partir do CPF/CNPJ. Mesmo esquema do S.Deal:
    o popup so manda o documento; a sessao logada (via aba real) e a
@@ -1487,7 +1442,7 @@ registrarHistorico("sdeal", {
    ---------------------------------------------------------------------- */
 
 // tenta alguns nomes de campo comuns para cada dado, ja que nao vimos o
-// corpo real da resposta do Gestão+ — so a URL da requisicao
+// corpo real da resposta do Gestão Online — so a URL da requisicao
 function primeiroValor(objeto, chaves) {
   for (const chave of chaves) {
     const valor = objeto?.[chave];
@@ -1737,7 +1692,6 @@ async function buscarDetalhePedido(movimentacaoId, forcarAtualizacao = false) {
       salvarEstadoGestaoNaSessao();
       mostrarAviso(aviso, "Detalhes do pedido carregados do cache.", "ok");
       $("atualizarPedidoBtn").classList.remove("hidden");
-      if ($("copiarPedidoAoAbrir").checked) copiarDetalhePedido();
       return;
     }
   }
@@ -1762,8 +1716,6 @@ async function buscarDetalhePedido(movimentacaoId, forcarAtualizacao = false) {
     salvarCache("gestaoDetalhePedido", String(movimentacaoId), { 
       pedido: resposta.pedido, itens: resposta.itens || [], historico: resposta.historico || [] 
     });
-
-    if ($("copiarPedidoAoAbrir").checked) copiarDetalhePedido();
   } catch {
     mostrarAviso(aviso, "Não foi possível falar com a extensão.", "erro");
     marcarErroNaAba("gestao");
@@ -1776,57 +1728,6 @@ function atualizarBuscaPedidoDetalhe() {
 }
 $("atualizarPedidoBtn").addEventListener("click", atualizarBuscaPedidoDetalhe);
 
-function copiarDetalhePedido() {
-  if (!ultimoPedidoGestao) return;
-  const { pedido, itens, historico } = ultimoPedidoGestao;
-  const parceiro = embutido(pedido, "parceiro");
-  const tipoDeNegociacao = embutido(pedido, "tipoDeNegociacao");
-
-  const linhas = [
-    `Pedido: ${pedido.codigo || "—"} (#${pedido.id})`,
-    `Parceiro: ${parceiro?.nome || "—"}${parceiro?.email ? ` <${parceiro.email}>` : ""}`,
-    `Forma de pagamento: ${tipoDeNegociacao?.descricao || "—"}`,
-    `Situação financeiro: ${pedido.situacaoFinanceiro || "—"}`,
-    `Situação NF: ${pedido.situacaoNf || "—"}`,
-    `Situação entrega: ${pedido.situacaoEntrega || "—"}`,
-    `Negociado em: ${formatarData(pedido.dataNegociacao)}`,
-    `Faturado em: ${formatarData(pedido.dataFaturamento)}`,
-    "",
-    "Itens:"
-  ];
-
-  itens.forEach((item) => {
-    const produto = embutido(item, "produto");
-    linhas.push(
-      `- ${produto?.descricao || "Item"} | Qtd ${item.quantidade ?? "—"} | ` +
-      `Unitário ${formatarMoeda(item.valorUnitario)} | Subtotal ${formatarMoeda(item.subTotal)}`
-    );
-  });
-
-  linhas.push(
-    "",
-    `Desconto: ${formatarMoeda(pedido.valorDesconto)}`,
-    `Frete: ${formatarMoeda(pedido.valorFrete)}`,
-    `Total: ${formatarMoeda(pedido.valorTotal)}`,
-    "",
-    "Histórico:"
-  );
-
-  historico
-    .filter((h) => h.situacao || h.descricao)
-    .sort((a, b) => new Date(a.data?.date || 0) - new Date(b.data?.date || 0))
-    .forEach((h) => {
-      const codigoSolicitacao = h.codigo ? ` (cód. solicitação: ${h.codigo})` : "";
-      linhas.push(`- [${formatarData(h.data)}] ${h.situacao || "Registro"}${codigoSolicitacao}: ${h.descricao || "—"}`);
-    });
-
-  navigator.clipboard
-    .writeText(linhas.join("\n"))
-    .then(() => mostrarAviso($("avisoPedido"), "Copiado.", "ok"))
-    .catch(() => mostrarAviso($("avisoPedido"), "Não foi possível copiar.", "erro"));
-}
-
-$("copiarPedidoBtn").addEventListener("click", copiarDetalhePedido);
 $("fecharPedidoBtn").addEventListener("click", () => {
   $("detalhePedido").classList.add("hidden");
   pedidoFechadoPeloUsuario = true;
@@ -1835,29 +1736,6 @@ $("fecharPedidoBtn").addEventListener("click", () => {
   if (chrome.storage.session) {
     chrome.storage.session.remove(ESTADO_GESTAO_SESSAO_CHAVE).catch(() => {});
   }
-});
-
-/* Toggle "copiar ao abrir" ------------------------------------------
-   Preferencia do atendente, guardada entre aberturas do popup. Quando
-   ligada, buscarDetalhePedido() copia o pedido pro clipboard assim que
-   ele termina de carregar, sem precisar clicar em "Copiar".
-   ---------------------------------------------------------------------- */
-
-const COPIAR_AO_ABRIR_CHAVE = "copiarPedidoAoAbrir";
-
-(async function carregarPreferenciaCopiarAoAbrir() {
-  try {
-    const guardado = await chrome.storage.local.get(COPIAR_AO_ABRIR_CHAVE);
-    $("copiarPedidoAoAbrir").checked = Boolean(guardado[COPIAR_AO_ABRIR_CHAVE]);
-  } catch {
-    // sem storage disponivel: fica desligado, sem travar o resto do popup
-  }
-})();
-
-$("copiarPedidoAoAbrir").addEventListener("change", (evento) => {
-  chrome.storage.local
-    .set({ [COPIAR_AO_ABRIR_CHAVE]: evento.target.checked })
-    .catch(() => {});
 });
 
 /* Busca direta por número do pedido, sem precisar do CPF/CNPJ ---------- */
@@ -2047,7 +1925,7 @@ async function buscarHistoricoGestao(forcarAtualizacao = false) {
   const rotulo = botao.textContent;
   botao.disabled = true;
   botao.textContent = "Buscando...";
-  mostrarAviso(aviso, "Buscando no Gestão+...", "");
+  mostrarAviso(aviso, "Buscando no Gestão Online...", "");
 
   try {
     const resposta = await chrome.runtime.sendMessage({ tipo: "buscarHistoricoGestaoPlus", cpfCnpj: documento });
@@ -2120,7 +1998,7 @@ $("documentoGestao").addEventListener("keydown", (evento) => {
   if (evento.key === "Enter") buscarHistoricoGestao();
 });
 
-/* Manter o resultado do Gestão+ vivo entre aberturas do popup ---------
+/* Manter o resultado do Gestão Online vivo entre aberturas do popup ---------
    O popup e uma pagina que recarrega do zero toda vez que fecha e abre
    de novo (inclusive quando fecha sozinho, por perder o foco pra outra
    aba do navegador) — então até aqui, trocar de aba pra checar outra
@@ -2187,9 +2065,9 @@ registrarHistorico("gestaoDocumento", {
 });
 
 /* Wings --------------------------------------------------------------
-   Busca dados de faturamento (assinatura/autenticações) e o perfil
+   Busca dados de faturamento (assinaturas/autenticações) e o perfil
    completo do usuário no billing.vaultid.com.br, usando a sessão
-   logada do Wings Portal. Mesmo esquema do Gestão+/S.Deal.
+   logada do Wings Portal. Mesmo esquema do Gestão Online/S.Deal.
    ---------------------------------------------------------------------- */
 
 // o background devolve datas como {date: "aaaa-mm-dd hh:mm:ss.uuuuuu", ...}
@@ -2308,7 +2186,7 @@ function renderizarResultadoWings(userRetail, deepDetail, documento) {
     { rotulo: "Email", valor: userRetail.email },
     { rotulo: "Telefone", valor: userRetail.phoneNumber },
     { rotulo: "Tipo de usuário", valor: userRetail.userType },
-    { rotulo: "Assinatura", valor: regras.signature },
+    { rotulo: "Assinaturas", valor: regras.signature },
     { rotulo: "Autenticações", valor: regras.login },
     { rotulo: "Vencimento", valor: formatarDataWings(regras.dueDate) }
   ]);
@@ -2533,7 +2411,7 @@ function copiarResultadoWings() {
     `Nome: ${userRetail.name || "—"} (#${userRetail.id})`,
     `Email: ${userRetail.email || "—"}`,
     `Telefone: ${userRetail.phoneNumber || "—"}`,
-    `Assinatura: ${regras.signature ?? "—"}`,
+    `Assinaturas: ${regras.signature ?? "—"}`,
     `Autenticações: ${regras.login ?? "—"}`,
     `Vencimento: ${formatarDataWings(regras.dueDate) || "—"}`,
     "",
@@ -3568,9 +3446,31 @@ async function lerBuscaPendente() {
   return null;
 }
 
+// As abas que buscam por um campo so precisam do campo preenchido e do
+// botao apertado. O menu de contexto manda o nome da aba; o resto (sessao,
+// cache, historico, validacao do documento) e a propria aba que cuida — se o
+// texto selecionado nao for um CPF/CNPJ valido, o aviso dela mesma aparece.
+const CAMPOS_DE_BUSCA = {
+  databricks: { campo: "documentoDatabricks", botao: "buscarDatabricksBtn" },
+  wings: { campo: "documentoWings", botao: "buscarWingsBtn" },
+  gestao: { campo: "documentoGestao", botao: "buscarGestaoBtn" },
+  sdeal: { campo: "codigoVoucherSDeal", botao: "buscarVoucherBtn" },
+  unificada: { campo: "documentoUnificado", botao: "buscarUnificadoBtn" }
+};
+
+// Devolve true quando trocou de aba, para escolherAbaInicial() saber que
+// nao deve passar por cima com a aba de boas-vindas.
 async function aplicarBuscaPendente() {
   const pedido = await lerBuscaPendente();
-  if (!pedido?.termo) return;
+  if (!pedido?.termo) return false;
+
+  const destino = CAMPOS_DE_BUSCA[pedido.aba];
+  if (destino) {
+    $(destino.campo).value = pedido.termo;
+    trocarAba(pedido.aba);
+    $(destino.botao).click();
+    return true;
+  }
 
   // lojas e parceiros agora moram na mesma aba: o pedido escolhe o escopo.
   // O escopo vem antes da aba para nao carregar a lista errada no caminho.
@@ -3580,10 +3480,10 @@ async function aplicarBuscaPendente() {
     trocarEscopo("lojas");
     trocarAba("atender");
     $("buscaLoja").select();
-    return;
+    return true;
   }
 
-  if (pedido.aba !== "parceiros") return;
+  if (pedido.aba !== "parceiros") return false;
 
   trocarEscopo(
     pedido.escopo === "internacional" ? "internacional" : "nacional"
@@ -3594,13 +3494,41 @@ async function aplicarBuscaPendente() {
   try {
     await prepararParceiros();
   } catch {
-    return;
+    return true; // a aba ja trocou
   }
 
   // depois do trocarEscopo, que limpa o campo
   $("buscaParceiro").value = pedido.termo;
   $("buscaParceiro").select();
   renderizarParceiros();
+  return true;
+}
+
+/* Qual aba abre ------------------------------------------------------
+   Tres respostas possiveis, nesta ordem: a busca que veio do menu de
+   contexto, a aba de boas-vindas (so na primeira vez que a extensao e
+   aberta nesta maquina) e, por fim, a que ja esta marcada no HTML.
+
+   Uma funcao so, em vez de cada uma chamar trocarAba() quando terminar:
+   assim a busca vinda do menu nao perde a corrida contra a leitura do
+   storage das boas-vindas.
+   -------------------------------------------------------------------- */
+const BOAS_VINDAS_CHAVE = "boasVindasVistas";
+
+async function escolherAbaInicial() {
+  if (await aplicarBuscaPendente()) return;
+
+  // local, nao sync: e sobre esta instalacao. Em maquina nova a
+  // apresentacao faz sentido de novo.
+  try {
+    const guardado = await chrome.storage.local.get(BOAS_VINDAS_CHAVE);
+    if (guardado[BOAS_VINDAS_CHAVE]) return;
+    await chrome.storage.local.set({ [BOAS_VINDAS_CHAVE]: true });
+  } catch {
+    return; // sem storage nao da para saber se e a primeira vez
+  }
+
+  trocarAba("inicio");
 }
 
 /* ==================================================================
@@ -3953,7 +3881,7 @@ registrarHistorico("databricks", {
 });
 
 /* Busca unificada -------------------------------------------------------
-   Digita o CPF/CNPJ uma vez só e dispara Gestão+, Wings e Databricks em
+   Digita o CPF/CNPJ uma vez só e dispara Gestão Online, Wings e Databricks em
    paralelo. O S.Deal fica de fora porque busca por número de voucher, não
    por CPF/CNPJ — não tem como entrar nessa busca unificada.
 
@@ -3966,7 +3894,7 @@ registrarHistorico("databricks", {
    ------------------------------------------------------------------- */
 
 const PLATAFORMAS_BUSCA_UNIFICADA = [
-  { nome: "Gestão+", aba: "gestao", campoId: "documentoGestao", avisoId: "avisoGestao", executar: () => buscarHistoricoGestao() },
+  { nome: "Gestão Online", aba: "gestao", campoId: "documentoGestao", avisoId: "avisoGestao", executar: () => buscarHistoricoGestao() },
   { nome: "Wings", aba: "wings", campoId: "documentoWings", avisoId: "avisoWings", executar: () => buscarWings() },
   { nome: "Databricks", aba: "databricks", campoId: "documentoDatabricks", avisoId: "avisoDatabricks", executar: () => buscarDatabricks() }
 ];
@@ -3998,7 +3926,7 @@ async function buscarUnificado() {
   const rotulo = botao.textContent;
   botao.disabled = true;
   botao.textContent = "Buscando...";
-  mostrarAviso(aviso, "Buscando no Gestão+, Wings e Databricks...", "");
+  mostrarAviso(aviso, "Buscando no Gestão Online, Wings e Databricks...", "");
 
   // preenche o campo de cada aba com o mesmo documento, pra reaproveitar
   // a função de busca de cada uma tal como ela já funciona sozinha
@@ -4082,4 +4010,4 @@ $("documentoUnificado").addEventListener("keydown", (evento) => {
 });
 
 carregarMacros();
-aplicarBuscaPendente();
+escolherAbaInicial();

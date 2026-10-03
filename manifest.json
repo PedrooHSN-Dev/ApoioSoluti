@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Apoio Soluti",
-  "version": "5.0",
+  "version": "5.4",
   "description": "Gerenciador de macros, extrator de texto da tela, consultas de AR, e-mails e atalhos para atendimento.",
   "permissions": [
     "storage",

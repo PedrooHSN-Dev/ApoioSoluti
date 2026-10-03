@@ -111,6 +111,53 @@ if (!window.ApoioEmails) {
       });
     }
 
-    return { ler, salvar, aoMudar };
+    /* Modelos da equipe que a pessoa tirou de vista ---------------------
+       Os da equipe moram no codigo (src/data/emails-equipe.js) e nao se
+       apagam: "excluir" um deles guarda o id aqui e ele deixa de aparecer
+       na lista e no seletor de envio. "Restaurar" esvazia a lista. Mesma
+       regra, e o mesmo codigo, do ApoioMacros.lerOcultos. A chave NAO
+       comeca com "emailsParte", entao a limpeza do sync dos modelos nao a
+       leva junto. */
+    const CHAVE_OCULTOS = "emailsEquipeOcultos";
+
+    function soIds(lista) {
+      return Array.isArray(lista) ? lista.filter((id) => typeof id === "string") : [];
+    }
+
+    async function lerOcultos() {
+      try {
+        const doSync = (await chrome.storage.sync.get(CHAVE_OCULTOS))[CHAVE_OCULTOS];
+        if (Array.isArray(doSync)) return soIds(doSync);
+      } catch {}
+
+      try {
+        return soIds((await chrome.storage.local.get(CHAVE_OCULTOS))[CHAVE_OCULTOS]);
+      } catch {
+        return [];
+      }
+    }
+
+    async function salvarOcultos(ids) {
+      const lista = [...new Set(soIds(ids))];
+      await chrome.storage.local.set({ [CHAVE_OCULTOS]: lista });
+
+      if (syncIndisponivel) return false;
+      try {
+        await chrome.storage.sync.set({ [CHAVE_OCULTOS]: lista });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function aoMudarOcultos(callback) {
+      chrome.storage.onChanged.addListener((mudancas, area) => {
+        if ((area === "sync" || area === "local") && mudancas[CHAVE_OCULTOS]) {
+          lerOcultos().then(callback);
+        }
+      });
+    }
+
+    return { ler, salvar, aoMudar, lerOcultos, salvarOcultos, aoMudarOcultos };
   })();
 }

@@ -1,5 +1,6 @@
 // Reordenar as abas do menu lateral arrastando (ou Alt + setas com a aba em
-// foco). Vale dentro de um grupo e entre grupos (Rápido / Ferramentas).
+// foco). Vale dentro de um grupo e entre grupos (Início / Atendimento /
+// Buscas).
 //
 // A ordem fica em localStorage (síncrono: aplicada antes do usuário ver a
 // barra) e também em chrome.storage, para viajar pelo sync entre máquinas.
@@ -26,9 +27,14 @@
 
   const ordemPadrao = ordemAtual();
 
+  // O numero de grupos faz parte do formato. Quando ele muda no HTML (os
+  // dois grupos "Rápido/Ferramentas" viraram tres), uma ordem salva no
+  // formato velho encaixaria as abas nos grupos errados e deixaria o grupo
+  // novo vazio — melhor ignora-la e valer o padrao novo.
   function valida(salvo) {
     return (
       Array.isArray(salvo) &&
+      salvo.length === grupos.length &&
       salvo.every((g) => Array.isArray(g) && g.every((id) => typeof id === "string"))
     );
   }

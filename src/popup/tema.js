@@ -11,14 +11,25 @@
 // e nao no chrome.storage (assincrono).
 //
 // Sem escolha salva, nada e marcado e o CSS segue o prefers-color-scheme.
+//
+// Sao DOIS eixos independentes, e por isso duas chaves:
+//   tema  claro | escuro   — manda no fundo (ausente = segue o sistema)
+//   cor   creme | oceano | rosa — manda so no realce (ausente = verde Soluti)
+// Dava para juntar num valor so, mas ai trocar de claro para escuro
+// perderia a cor escolhida, e vice-versa.
+
+const TEMAS = ["claro", "escuro"];
+const CORES = ["creme", "oceano", "rosa"];
 
 (() => {
   try {
     const tema = localStorage.getItem("tema");
+    const cor = localStorage.getItem("cor");
 
-    if (tema === "claro" || tema === "escuro") {
-      document.documentElement.dataset.tema = tema;
-    }
+    // um valor que saiu da lista (downgrade da extensao, chave editada a
+    // mao) nao marca nada: cai no padrao em vez de ficar sem cor
+    if (TEMAS.includes(tema)) document.documentElement.dataset.tema = tema;
+    if (CORES.includes(cor)) document.documentElement.dataset.cor = cor;
   } catch {
     // armazenamento bloqueado: segue o tema do sistema
   }

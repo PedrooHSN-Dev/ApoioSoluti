@@ -35,10 +35,11 @@
       title="Abrir em uma janela separada (Ctrl+Shift+Y)"
       aria-label="Abrir em uma janela separada"
     >
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <rect x="3.2" y="4.2" width="10.6" height="9.4" rx="1.3" stroke="currentColor" stroke-width="1.4"/>
-        <path d="M9.5 3h5.8a1.7 1.7 0 0 1 1.7 1.7v5.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-        <path d="M17 3l-6.6 6.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/>
+        <path d="m21 3-9 9"/>
+        <path d="M15 3h6v6"/>
       </svg>
     </button>
 
@@ -46,8 +47,8 @@
       id="temaBtn"
       class="tema-btn"
       type="button"
-      title="Alternar entre tema claro e escuro"
-      aria-label="Alternar entre tema claro e escuro"
+      title="Alternar entre claro e escuro"
+      aria-label="Alternar entre claro e escuro"
     >
       <svg class="lua" viewBox="0 0 20 20" fill="none" aria-hidden="true">
         <path d="M16.5 12.4A7 7 0 0 1 7.6 3.5a7 7 0 1 0 8.9 8.9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
@@ -57,6 +58,63 @@
         <path d="M10 2.2v1.9M10 15.9v1.9M17.8 10h-1.9M4.1 10H2.2M15.5 4.5l-1.3 1.3M5.8 14.2l-1.3 1.3M15.5 15.5l-1.3-1.3M5.8 5.8 4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
       </svg>
     </button>
+
+    <div class="cor-escolha">
+      <button
+        id="corBtn"
+        class="tema-btn"
+        type="button"
+        title="Cor de destaque"
+        aria-label="Cor de destaque"
+        aria-haspopup="true"
+        aria-expanded="false"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/>
+          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
+          <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+          <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+        </svg>
+      </button>
+
+      <div id="corMenu" class="cor-menu hidden" role="menu" aria-label="Cor de destaque">
+        <button class="cor-opcao" type="button" role="menuitemradio" data-cor-escolha="padrao">
+          <span class="cor-amostra cor-amostra-padrao" aria-hidden="true"></span>
+          <span class="cor-opcao-nome">Padrão</span>
+          <svg class="cor-opcao-check" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </button>
+        <button class="cor-opcao" type="button" role="menuitemradio" data-cor-escolha="creme">
+          <span class="cor-amostra cor-amostra-creme" aria-hidden="true"></span>
+          <span class="cor-opcao-nome">Creme</span>
+          <svg class="cor-opcao-check" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </button>
+        <button class="cor-opcao" type="button" role="menuitemradio" data-cor-escolha="oceano">
+          <span class="cor-amostra cor-amostra-oceano" aria-hidden="true"></span>
+          <span class="cor-opcao-nome">Oceano</span>
+          <svg class="cor-opcao-check" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </button>
+        <button class="cor-opcao" type="button" role="menuitemradio" data-cor-escolha="rosa">
+          <span class="cor-amostra cor-amostra-rosa" aria-hidden="true"></span>
+          <span class="cor-opcao-nome">Rosa</span>
+          <svg class="cor-opcao-check" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
   </header>
 
   <div class="corpo">
@@ -78,7 +136,16 @@
         </svg>
       </button>
 
-      <div class="grupo-abas" data-label="Rápido">
+      <div class="grupo-abas" data-label="Início">
+        <button class="aba" data-aba="inicio" role="tab" aria-selected="false" title="Bem-vindo">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M3.2 9.1 10 3.6l6.8 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4.9 10.4v5.1a.9.9 0 0 0 .9.9h8.4a.9.9 0 0 0 .9-.9v-5.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Bem-vindo</span>
+        </button>
         <button class="aba" data-aba="dia" role="tab" aria-selected="false" title="Começar o dia">
           <span class="aba-icone" aria-hidden="true">
             <svg viewBox="0 0 20 20" fill="none">
@@ -88,6 +155,9 @@
           </span>
           <span class="aba-nome">Começar</span>
         </button>
+      </div>
+
+      <div class="grupo-abas" data-label="Atendimento">
         <button class="aba ativa" data-aba="macros" role="tab" aria-selected="true" title="Macros">
           <span class="aba-icone" aria-hidden="true">
             <svg viewBox="0 0 20 20" fill="none">
@@ -98,70 +168,14 @@
           </span>
           <span class="aba-nome">Macros</span>
         </button>
-        <button class="aba" data-aba="unificada" role="tab" aria-selected="false" title="Busca unificada">
+        <button class="aba" data-aba="emails" role="tab" aria-selected="false" title="E-mails">
           <span class="aba-icone" aria-hidden="true">
             <svg viewBox="0 0 20 20" fill="none">
-              <circle cx="7.2" cy="7.2" r="4.2" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M10.3 10.3 15 15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <rect x="2.6" y="4.4" width="14.8" height="11.2" rx="1.6" stroke="currentColor" stroke-width="1.4"/>
+              <path d="m3.2 5.6 6.8 5.2 6.8-5.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </span>
-          <span class="aba-nome">Busca unificada</span>
-        </button>
-        <button class="aba" data-aba="solicitacao" role="tab" aria-selected="false" title="Solicitação">
-          <span class="aba-icone" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="none">
-              <path d="M6 2.5h6l3 3v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-              <path d="M12 2.5v3h3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-              <path d="M7.3 11h5.4M7.3 13.6h5.4M7.3 8.4h2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span class="aba-nome">Solicitação</span>
-        </button>
-      </div>
-
-      <div class="grupo-abas" data-label="Ferramentas">
-        <button class="aba" data-aba="gestao" role="tab" aria-selected="false" title="Gestão+">
-          <span class="aba-icone" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="none">
-              <rect x="2.6" y="4" width="14.8" height="12.5" rx="1.6" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M2.6 7.6h14.8" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M6 10.6h8M6 13.2h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            </svg>
-            <span id="abaErroGestao" class="aba-badge-erro hidden" title="A última busca falhou"></span>
-            <span id="abaSessaoGestao" class="aba-badge-sessao" title="Sessão não verificada"></span>
-          </span>
-          <span class="aba-nome">Gestão+</span>
-        </button>
-        <button class="aba" data-aba="wings" role="tab" aria-selected="false" title="Wings">
-          <span class="aba-icone" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="none">
-              <path d="M2.5 12.5 6.5 6l3.5 5.5L13.5 6l4 6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="10" cy="15" r="1.1" fill="currentColor"/>
-            </svg>
-            <span id="abaErroWings" class="aba-badge-erro hidden" title="A última busca falhou"></span>
-            <span id="abaSessaoWings" class="aba-badge-sessao" title="Sessão não verificada"></span>
-          </span>
-          <span class="aba-nome">Wings</span>
-        </button>
-        <button class="aba" data-aba="databricks" role="tab" aria-selected="false" title="Databricks">
-          <span class="aba-icone" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="none">
-              <path d="M4 6a6 2 0 1 0 12 0 6 2 0 1 0-12 0zm0 4a6 2 0 1 0 12 0m-12 4a6 2 0 1 0 12 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            </svg>
-            <span id="abaErroDatabricks" class="aba-badge-erro hidden" title="A última busca falhou"></span>
-          </span>
-          <span class="aba-nome">Databricks</span>
-        </button>
-        <button class="aba" data-aba="sdeal" role="tab" aria-selected="false" title="S.Deal">
-          <span class="aba-icone" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="none">
-              <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M13.4 13.4 17 17" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-            </svg>
-            <span id="abaErroSdeal" class="aba-badge-erro hidden" title="A última busca falhou"></span>
-            <span id="abaSessaoSdeal" class="aba-badge-sessao" title="Sessão não verificada"></span>
-          </span>
-          <span class="aba-nome">S.Deal</span>
+          <span class="aba-nome">E-mails</span>
         </button>
         <button class="aba" data-aba="atender" role="tab" aria-selected="false" title="Lojas">
           <span class="aba-icone" aria-hidden="true">
@@ -181,19 +195,160 @@
           </span>
           <span class="aba-nome">Captura</span>
         </button>
-              <button class="aba" data-aba="emails" role="tab" aria-selected="false" title="E-mails">
+        <button class="aba" data-aba="importar" role="tab" aria-selected="false" title="Importar e exportar">
           <span class="aba-icone" aria-hidden="true">
             <svg viewBox="0 0 20 20" fill="none">
-              <rect x="2.6" y="4.4" width="14.8" height="11.2" rx="1.6" stroke="currentColor" stroke-width="1.4"/>
-              <path d="m3.2 5.6 6.8 5.2 6.8-5.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 3.4v8.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="m6.9 8.5 3.1 3.1 3.1-3.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3.6 13.1v2a1.4 1.4 0 0 0 1.4 1.4h10a1.4 1.4 0 0 0 1.4-1.4v-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </span>
-          <span class="aba-nome">E-mails</span>
+          <span class="aba-nome">Importar</span>
         </button>
       </div>
+
+      <div class="grupo-abas" data-label="Buscas">
+        <button class="aba" data-aba="unificada" role="tab" aria-selected="false" title="Busca unificada">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <circle cx="7.2" cy="7.2" r="4.2" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M10.3 10.3 15 15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Busca unificada</span>
+        </button>
+        <button class="aba" data-aba="databricks" role="tab" aria-selected="false" title="Databricks">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M4 6a6 2 0 1 0 12 0 6 2 0 1 0-12 0zm0 4a6 2 0 1 0 12 0m-12 4a6 2 0 1 0 12 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span id="abaErroDatabricks" class="aba-badge-erro hidden" title="A última busca falhou"></span>
+          </span>
+          <span class="aba-nome">Databricks</span>
+        </button>
+        <button class="aba" data-aba="wings" role="tab" aria-selected="false" title="Wings">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M2.5 12.5 6.5 6l3.5 5.5L13.5 6l4 6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="10" cy="15" r="1.1" fill="currentColor"/>
+            </svg>
+            <span id="abaErroWings" class="aba-badge-erro hidden" title="A última busca falhou"></span>
+            <span id="abaSessaoWings" class="aba-badge-sessao" title="Sessão não verificada"></span>
+          </span>
+          <span class="aba-nome">Wings</span>
+        </button>
+        <button class="aba" data-aba="gestao" role="tab" aria-selected="false" title="Gestão Online">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <rect x="2.6" y="4" width="14.8" height="12.5" rx="1.6" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M2.6 7.6h14.8" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M6 10.6h8M6 13.2h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span id="abaErroGestao" class="aba-badge-erro hidden" title="A última busca falhou"></span>
+            <span id="abaSessaoGestao" class="aba-badge-sessao" title="Sessão não verificada"></span>
+          </span>
+          <span class="aba-nome">Gestão Online</span>
+        </button>
+        <button class="aba" data-aba="sdeal" role="tab" aria-selected="false" title="S.Deal">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M4.4 4.9H11a1.4 1.4 0 0 0 2.8 0h1.8a1.3 1.3 0 0 1 1.3 1.3v7.6a1.3 1.3 0 0 1-1.3 1.3h-1.8a1.4 1.4 0 0 0-2.8 0H4.4a1.3 1.3 0 0 1-1.3-1.3V6.2a1.3 1.3 0 0 1 1.3-1.3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+              <path d="M12.4 7.3v5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="1.6 1.9"/>
+            </svg>
+            <span id="abaErroSdeal" class="aba-badge-erro hidden" title="A última busca falhou"></span>
+            <span id="abaSessaoSdeal" class="aba-badge-sessao" title="Sessão não verificada"></span>
+          </span>
+          <span class="aba-nome">S.Deal</span>
+        </button>
+        <button class="aba" data-aba="solicitacao" role="tab" aria-selected="false" title="Solicitação">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <path d="M6 2.5h6l3 3v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M12 2.5v3h3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M7.3 11h5.4M7.3 13.6h5.4M7.3 8.4h2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Solicitação</span>
+        </button>
+      </div>
+
+      <div class="grupo-abas" data-label="Sobre">
+        <button class="aba" data-aba="sobre" role="tab" aria-selected="false" title="Sobre a extensão">
+          <span class="aba-icone" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="7.2" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M10 9.2v4.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <circle cx="10" cy="6.6" r="0.95" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="aba-nome">Sobre</span>
+        </button>
+      </div>
+
     </nav>
 
   <main class="container">
+
+    <!--
+      ABA BEM-VINDO
+      A primeira coisa que aparece na primeira vez que a extensão é aberta
+      (quem decide isso é escolherAbaInicial(), no popup.js). Depois disso
+      continua clicável como qualquer outra aba, para quando alguém novo
+      senta na máquina.
+    -->
+    <section id="painel-inicio" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Bem-vindo ao Apoio Soluti</h2>
+      </div>
+
+      <p class="painel-texto">
+        As ferramentas do Suporte B2C num lugar só: as consultas que você
+        faria em cinco sistemas diferentes, os textos que você repete o dia
+        inteiro e os atalhos que poupam a cópia e cola entre abas.
+      </p>
+
+      <div class="boas-vindas-grupos">
+        <section class="boas-vindas-grupo">
+          <h3>Início</h3>
+          <p>
+            <b>Começar</b> abre de uma vez os sistemas do atendimento, sem
+            repetir aba que já estiver aberta. A lista é sua: dá para
+            acrescentar endereços, tirar o que não usa e arrastar para mudar
+            a ordem.
+          </p>
+        </section>
+
+        <section class="boas-vindas-grupo">
+          <h3>Atendimento</h3>
+          <p>
+            <b>Macros</b> expande comandos como <code>.ini</code> em
+            qualquer campo de texto, em qualquer site.
+            <b>E-mails</b> monta e envia pelo Outlook a partir dos seus
+            modelos. <b>Lojas</b> procura unidades Soluti e parceiros, no
+            Brasil e fora. <b>Captura</b> lê o texto de um pedaço da tela ou
+            de uma imagem.
+          </p>
+        </section>
+
+        <section class="boas-vindas-grupo">
+          <h3>Buscas</h3>
+          <p>
+            <b>Unificada</b> procura o CPF/CNPJ no Gestão Online, no Wings e
+            no Databricks ao mesmo tempo — e as abas de cada um estão aí para
+            quando você quiser só um deles. <b>S.Deal</b> busca por voucher e
+            <b>Solicitação</b> consulta o pedido pelo código, mostrando os dados
+            aqui dentro ou abrindo direto na AR.
+          </p>
+        </section>
+      </div>
+
+      <p class="ferramenta-dica">
+        Com texto selecionado em qualquer página, o botão direito tem o menu
+        <b>Apoio Soluti</b> com essas mesmas buscas. A barra à esquerda se
+        expande no botão de cima, e as abas se arrastam para a ordem que você
+        preferir.
+      </p>
+    </section>
 
     <!-- ABA MACROS -->
     <section id="painel-macros" class="painel" role="tabpanel">
@@ -201,9 +356,6 @@
         <h2>Macros</h2>
         <div class="secao-acoes">
           <span id="contador">0/0 comandos</span>
-          <button id="exportarMacrosBtn" class="link-btn" type="button">Exportar</button>
-          <button id="importarMacrosBtn" class="link-btn" type="button">Importar</button>
-          <input id="importarMacrosInput" type="file" accept="application/json" hidden>
         </div>
       </div>
 
@@ -260,7 +412,7 @@
     <!--
       ABA BUSCA UNIFICADA
       Digita o CPF/CNPJ uma vez e dispara nas três buscas que aceitam
-      documento (Gestão+, Wings, Databricks) ao mesmo tempo, reaproveitando
+      documento (Gestão Online, Wings, Databricks) ao mesmo tempo, reaproveitando
       as funções de busca/cache/sessão/histórico de cada aba — essa aba só
       preenche os três campos e chama as três funções em paralelo. O S.Deal
       fica de fora porque busca por número de voucher, não por CPF/CNPJ.
@@ -270,7 +422,7 @@
         <h2>Busca unificada</h2>
       </div>
 
-      <!-- Status de sessão do Gestão+ e do Wings (os dois que dependem de
+      <!-- Status de sessão do Gestão Online e do Wings (os dois que dependem de
            login entre os três buscados aqui — Databricks não usa cookie
            de sessão). Atualiza sozinho ao entrar na aba; "Fazer login"
            só aparece quando a sessão está mesmo inativa. -->
@@ -288,7 +440,7 @@
 
       <p id="avisoUnificado" class="ferramenta-aviso"></p>
       <p class="ferramenta-dica">
-        Busca ao mesmo tempo no Gestão+, Wings e Databricks. O S.Deal não
+        Busca ao mesmo tempo no Gestão Online, Wings e Databricks. O S.Deal não
         entra aqui porque busca por número de voucher, não por CPF/CNPJ.
       </p>
 
@@ -311,18 +463,41 @@
           placeholder="Código da solicitação"
           autocomplete="off"
         >
-        <button id="abrirArBtn" class="primary">Abrir site da AR</button>
+        <button id="consultarAndamentoBtn" class="primary">Consultar</button>
+      </div>
+      <div class="ferramenta-linha and-abrir">
         <button id="abrirSolicitacaoBtn" class="secondary">
           Abrir solicitação
         </button>
+        <button id="abrirArBtn" class="secondary">Abrir site da AR</button>
       </div>
 
       <div id="historicoSolicitacao" class="historico-lista hidden"></div>
 
       <p id="avisoSolicitacao" class="ferramenta-aviso"></p>
+
+      <div id="andamentoEscolha" class="and-escolha hidden"></div>
+
+      <div id="andamentoResultado" class="hidden">
+        <div class="and-barra">
+          <span id="andamentoTitulo" class="and-titulo"></span>
+          <span class="and-barra-acoes">
+            <button id="andamentoCopiarBtn" type="button" class="link-btn">Copiar tudo</button>
+            <button id="andamentoAbrirBtn" type="button" class="link-btn">Abrir na AR</button>
+            <button id="andamentoAtualizarBtn" type="button" class="link-btn">Atualizar</button>
+          </span>
+        </div>
+        <p id="andamentoCabecalho" class="and-cabecalho hidden"></p>
+        <div id="andamentoSecoes"></div>
+      </div>
+
       <p class="ferramenta-dica">
-        Também dá para selecionar o código em qualquer página e usar o botão
-        direito — os dois destinos estão lá.
+        <b>Consultar</b> traz aqui dentro os dados da solicitação (qualquer AR
+        da Acsoluti: o código diz qual é). É preciso estar logado na AR com o
+        certificado digital; se a sessão tiver expirado, o botão de login
+        aparece aqui. Nada do que é consultado fica guardado — só o código, nos
+        recentes. Também dá para selecionar o código em qualquer página e usar
+        o botão direito.
       </p>
     </section>
 
@@ -424,7 +599,7 @@
     -->
     <section id="painel-gestao" class="painel hidden" role="tabpanel">
       <div class="secao-titulo">
-        <h2>Gestão+ — histórico do parceiro</h2>
+        <h2>Gestão Online — histórico do parceiro</h2>
       </div>
 
       <div class="ferramenta-linha">
@@ -462,7 +637,7 @@
       <div id="resultadoBuscaPedido" class="sdeal-resultado hidden">
         <div class="sdeal-cabecalho">
           <span class="sdeal-situacao">Pedidos encontrados</span>
-          <button id="atualizarBuscaPedidoBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Gestão+">
+          <button id="atualizarBuscaPedidoBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Gestão Online">
             Atualizar busca
           </button>
         </div>
@@ -473,7 +648,7 @@
         <div class="sdeal-cabecalho">
           <span id="gestaoParceiroNome" class="sdeal-situacao">—</span>
           <span class="sdeal-cabecalho-acoes">
-            <button id="atualizarGestaoBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Gestão+">
+            <button id="atualizarGestaoBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Gestão Online">
               Atualizar busca
             </button>
             <button id="copiarGestaoBtn" class="link-btn" type="button">
@@ -494,12 +669,7 @@
         <div class="sdeal-cabecalho">
           <span id="pedidoTitulo" class="sdeal-situacao">—</span>
           <div class="gestao-pedido-acoes">
-            <label class="copiar-ao-abrir-toggle" title="Copia o pedido para a área de transferência assim que ele é aberto">
-              <input type="checkbox" id="copiarPedidoAoAbrir">
-              Copiar ao abrir
-            </label>
-            <button id="atualizarPedidoBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Gestão+">Atualizar busca</button>
-            <button id="copiarPedidoBtn" class="link-btn" type="button">Copiar</button>
+            <button id="atualizarPedidoBtn" class="link-btn hidden" type="button" title="Este resultado veio do cache — busca de novo direto no Gestão Online">Atualizar busca</button>
             <button id="fecharPedidoBtn" class="link-btn" type="button">Fechar</button>
           </div>
         </div>
@@ -574,7 +744,7 @@
       <p id="avisoPedido" class="ferramenta-aviso"></p>
 
       <p class="ferramenta-dica">
-        A primeira busca pode abrir uma aba do Gestão+ em segundo plano
+        A primeira busca pode abrir uma aba do Gestão Online em segundo plano
         para usar sua sessão logada — se você não estiver logado, faça
         login uma vez e busque de novo.
       </p>
@@ -582,13 +752,13 @@
 
     <!--
       ABA WINGS
-      Busca dados de faturamento (assinatura/autenticações) e detalhe do
+      Busca dados de faturamento (assinaturas/autenticações) e detalhe do
       usuário no billing.vaultid.com.br, usando a sessão logada do Wings
-      Portal (wingsportal.com.br). Mesmo esquema do Gestão+/S.Deal.
+      Portal (wingsportal.com.br). Mesmo esquema do Gestão Online/S.Deal.
     -->
     <section id="painel-wings" class="painel hidden" role="tabpanel">
       <div class="secao-titulo">
-        <h2>Wings — assinatura e autenticações</h2>
+        <h2>Wings — assinaturas e autenticações</h2>
       </div>
 
       <div class="ferramenta-linha">
@@ -816,8 +986,13 @@
           <button id="novoEnderecoBtn" class="link-btn" type="button">
             Acrescentar
           </button>
-          <button id="backupBtn" class="link-btn" type="button">
-            Outro PC
+          <button
+            id="restaurarPadroesBtn"
+            class="link-btn hidden"
+            type="button"
+            title="Traz de volta os sistemas da extensão que você tirou da lista"
+          >
+            Restaurar
           </button>
         </div>
       </div>
@@ -828,8 +1003,10 @@
       </p>
 
       <!--
-        Os sistemas da tabela (src/dados/sistemas.js) só se desmarcam: as
-        abas de consulta dependem deles. Só sai o que você acrescentou.
+        Tudo sai da lista, inclusive os sistemas da tabela
+        (src/dados/sistemas.js) — tirá-los daqui não mexe nas abas de
+        consulta, que leem a tabela direto. "Restaurar" traz esses de volta;
+        o endereço que você acrescentou, não.
       -->
       <section id="formularioDia" class="formulario hidden">
         <label for="diaNovoNome">Nome (opcional)</label>
@@ -852,33 +1029,6 @@
           <button id="salvarEnderecoBtn" class="primary">Acrescentar</button>
           <button id="cancelarEnderecoBtn" class="secondary">Cancelar</button>
         </div>
-      </section>
-
-      <!--
-        LEVAR PARA OUTRO PC
-        Recolhido: é manutenção (máquina nova, backup antes de formatar), e
-        aberto ele comia 110px da lista numa aba de uso diário.
-
-        Macros, modelos e a lista já viajam sozinhos pelo storage.sync, mas
-        só entre máquinas logadas no MESMO navegador — o arquivo cobre o
-        resto. O código fica em src/popup/backup.js, por não ser sobre
-        começar o dia.
-      -->
-      <section id="blocoBackup" class="formulario hidden">
-        <p class="ferramenta-dica" style="margin-top: 0">
-          Um arquivo com seus macros, seus modelos de e-mail e esta lista.
-          Com a mesma conta do navegador nos dois PCs, as três já viajam
-          sozinhas — isto serve para máquina nova, outro navegador, ou uma
-          cópia antes de formatar.
-        </p>
-
-        <div class="form-botoes">
-          <button id="exportarTudoBtn" class="primary">Exportar tudo</button>
-          <button id="importarTudoBtn" class="secondary">Importar</button>
-          <input id="importarTudoInput" type="file" accept="application/json" hidden>
-        </div>
-
-        <p id="avisoBackup" class="ferramenta-aviso"></p>
       </section>
 
       <div id="diaSistemas" class="dia-lista"></div>
@@ -1076,6 +1226,100 @@
       </div>
     </section>
 
+
+    <!--
+      ABA IMPORTAR
+      Uma linha por ferramenta que guarda coisa sua, mais o "tudo junto".
+      As linhas são desenhadas pelo src/popup/backup.js a partir de uma
+      tabela: o que o arquivo exporta e o que ele importa ficam declarados
+      num lugar só, em vez de três pares de botões escritos à mão.
+    -->
+    <section id="painel-importar" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Importar e exportar</h2>
+      </div>
+
+      <p class="painel-texto">
+        Tudo que você cria aqui já viaja sozinho entre máquinas logadas no
+        mesmo navegador. O arquivo serve para o resto: máquina nova sem
+        login, outro navegador, passar para um colega, ou uma cópia antes de
+        formatar.
+      </p>
+
+      <div id="listaPartesBackup" class="backup-lista"></div>
+
+      <p id="avisoBackup" class="ferramenta-aviso"></p>
+
+      <p class="ferramenta-dica">
+        Os macros e modelos de mesmo nome são atualizados pelo arquivo; o
+        resto é somado. A lista de endereços é uma ordem, e ordem não se
+        soma: essa é substituída inteira.
+      </p>
+    </section>
+
+    <!-- ABA SOBRE -->
+    <section id="painel-sobre" class="painel hidden" role="tabpanel">
+      <div class="secao-titulo">
+        <h2>Sobre o Apoio Soluti</h2>
+      </div>
+
+      <p class="painel-texto">
+        O Apoio Soluti nasceu de uma conta simples: quanto tempo do
+        atendimento ia embora em coisas que não eram atendimento. Abrir os
+        mesmos seis sistemas toda manhã, digitar de novo o mesmo texto,
+        copiar um CPF de uma aba para colar em três, procurar o endereço de
+        uma unidade numa planilha. Nada disso é difícil — é só repetido, e o
+        repetido custa caro quando há alguém esperando do outro lado.
+      </p>
+
+      <p class="painel-texto">
+        Então a extensão faz essas partes. Ela abre a rotina do dia de uma
+        vez, sem repetir aba já aberta. Expande comandos como
+        <code>.ini</code> em qualquer campo de texto, em qualquer site.
+        Consulta Gestão Online, Wings e Databricks com um CPF/CNPJ só e
+        mostra as três respostas lado a lado. Lê texto de um pedaço da tela
+        quando o cliente manda print. Monta e-mails a partir dos seus
+        modelos. Encontra lojas e parceiros, no Brasil e fora. E põe as
+        buscas no botão direito, para o atendimento que começa numa página
+        qualquer.
+      </p>
+
+      <section class="sobre-bloco">
+        <h3>Quem construiu</h3>
+        <ul class="sobre-creditos">
+          <li>
+            <span class="sobre-nome">Vitor Hugo Dias de Azevedo</span>
+            <span class="sobre-papel">Criou a primeira versão e a segunda</span>
+          </li>
+          <li>
+            <span class="sobre-nome">Vinícius Zoccoli de Moraes Barros</span>
+            <span class="sobre-papel">Reescreveu e mantém da v3 em diante</span>
+          </li>
+          <li>
+            <span class="sobre-nome">Pedro Henrique Silva do Nascimento</span>
+            <span class="sobre-papel">Reescreveu e mantém da v3 em diante</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="sobre-bloco sobre-convite">
+        <h3>Quer seu nome aqui?</h3>
+        <p>
+          Então nos ajude a melhorar. O código é aberto para alteração: pegue,
+          mude, quebre, conserte e mostre do que você é capaz. Quem atende
+          todo dia é quem sabe o que falta — se você percebeu uma volta que a
+          ferramenta te obriga a dar, você já achou a próxima melhoria. Traga
+          a ideia ou traga o código; os dois contam, e os dois entram nesta
+          lista.
+        </p>
+      </section>
+
+      <p class="ferramenta-dica">
+        Apoio Soluti &middot; Suporte B2C &middot; versão
+        <span id="sobreVersao">—</span>
+      </p>
+    </section>
+
   </main>
 
   </div>
@@ -1100,12 +1344,14 @@
   <script src="../common/emails.js"></script>
   <script src="../common/rotina-dia.js"></script>
   <script src="../common/validacao.js"></script>
+  <script src="../common/andamento-parser.js"></script>
   <script src="../content/equipe.js"></script>
   <script src="popup.js"></script>
   <script src="reordenar.js"></script>
   <script src="ordem-abas.js"></script>
   <script src="aba-dia.js"></script>
   <script src="aba-emails.js"></script>
+  <script src="aba-andamento.js"></script>
   <script src="backup.js"></script>
   <script src="partida.js"></script>
 </body>

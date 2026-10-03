@@ -6,6 +6,8 @@ importScripts(
   './arrow.js',
   // tabela dos sistemas, rotina do dia, abertura do dia e e-mail pelo Outlook
   '../data/sistemas.js',
+  // destinos do menu do botao direito
+  '../common/sites-busca.js',
   '../common/rotina-dia.js',
   './abertura-dia.js',
   './email-outlook.js'
@@ -381,60 +383,100 @@ async function iniciarOcrNaAbaAtiva() {
    AR e Solicitacoes
    ================================================================== */
 const API_BUSCA_URLS = "https://arsoluti.acsoluti.com.br/pool/busca-urls";
-const MENU_SOLICITACAO = "apoio-soluti-abrir-solicitacao";
-const MENU_AR = "apoio-soluti-abrir-ar";
+const MENU_RAIZ = "apoio-soluti-raiz";
+const MENU_BUSCAS = "apoio-soluti-buscas";
+const MENU_LOJAS = "apoio-soluti-lojas";
 const MENU_AMPLIAR = "apoio-soluti-ampliar-imagem";
 const MENU_LER_IMAGEM = "apoio-soluti-ler-imagem";
-const MENU_BUSCAR = "apoio-soluti-buscar";
 
-const DESTINOS_BUSCA = {
-  "apoio-soluti-buscar-loja": { titulo: "Loja Soluti", aba: "lojas", escopo: "" },
-  "apoio-soluti-buscar-nacional": { titulo: "Parceiro nacional", aba: "parceiros", escopo: "nacional" },
-  "apoio-soluti-buscar-intl": { titulo: "Parceiro internacional", aba: "parceiros", escopo: "internacional" }
-};
-
-function criarItemMenu(propriedades, icones) {
-  if (!icones) {
-    chrome.contextMenus.create(propriedades);
-    return;
-  }
-  try {
-    chrome.contextMenus.create({ ...propriedades, icons: icones });
-  } catch {
-    chrome.contextMenus.create(propriedades);
-  }
+// O `icons` que ficava aqui era do Firefox; o Chrome ignora a propriedade e
+// os itens saíam sem ícone nenhum. Agora o emoji no próprio título faz esse
+// papel, nos dois navegadores.
+function criarItemMenu(propriedades) {
+  chrome.contextMenus.create(propriedades);
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.removeAll(() => {
-    criarItemMenu(
-      { id: MENU_SOLICITACAO, title: "Abrir solicitação na AR", contexts: ["selection"] },
-      { "16": "icons/icon-menu-solicitacao-16.png", "32": "icons/icon-menu-solicitacao-32.png" }
-    );
-    criarItemMenu(
-      { id: MENU_AR, title: "Abrir site da AR", contexts: ["selection"] },
-      { "16": "icons/icon-menu-ar-16.png", "32": "icons/icon-menu-ar-32.png" }
-    );
-    criarItemMenu({ id: MENU_LER_IMAGEM, title: "Extrair texto desta imagem", contexts: ["image"] });
-    criarItemMenu({ id: MENU_AMPLIAR, title: "Ampliar imagem", contexts: ["image"] });
-    criarItemMenu({ id: MENU_BUSCAR, title: "Buscar em...", contexts: ["selection"] });
+/* O menu do botão direito -------------------------------------------------
+   Tudo pendurado em "Apoio Soluti": antes eram cinco linhas nossas soltas no
+   menu da página. Os destinos vêm das tabelas de common/sites-busca.js, que
+   é o que deixa isto ser um laço em vez de uma chamada por item.
 
-    Object.entries(DESTINOS_BUSCA).forEach(([id, destino]) => {
-      criarItemMenu({ id, parentId: MENU_BUSCAR, title: destino.titulo, contexts: ["selection"] });
+   A raiz atende seleção E imagem, e cada filho declara o seu contexto: com
+   texto selecionado aparecem Buscas e Lojas, sobre uma imagem aparecem os
+   dois itens de imagem.
+   ----------------------------------------------------------------------- */
+function montarMenus() {
+  chrome.contextMenus.removeAll(() => {
+    criarItemMenu({
+      id: MENU_RAIZ,
+      title: "Apoio Soluti",
+      contexts: ["selection", "image"]
+    });
+
+    criarItemMenu({
+      id: MENU_BUSCAS,
+      parentId: MENU_RAIZ,
+      title: "🔎 Buscas",
+      contexts: ["selection"]
+    });
+    SITES_BUSCA.forEach((site) => {
+      criarItemMenu({
+        id: site.id,
+        parentId: MENU_BUSCAS,
+        title: `${site.emoji} ${site.nome}`,
+        contexts: ["selection"]
+      });
+    });
+
+    criarItemMenu({
+      id: MENU_LOJAS,
+      parentId: MENU_RAIZ,
+      title: "🏪 Lojas",
+      contexts: ["selection"]
+    });
+    LOJAS_BUSCA.forEach((loja) => {
+      criarItemMenu({
+        id: loja.id,
+        parentId: MENU_LOJAS,
+        title: `${loja.emoji} ${loja.nome}`,
+        contexts: ["selection"]
+      });
+    });
+
+    criarItemMenu({
+      id: MENU_LER_IMAGEM,
+      parentId: MENU_RAIZ,
+      title: "🔤 Extrair texto desta imagem",
+      contexts: ["image"]
+    });
+    criarItemMenu({
+      id: MENU_AMPLIAR,
+      parentId: MENU_RAIZ,
+      title: "🔍 Ampliar imagem",
+      contexts: ["image"]
     });
   });
-});
+}
+
+chrome.runtime.onInstalled.addListener(montarMenus);
 
 chrome.contextMenus.onClicked.addListener((info, aba) => {
-  if (info.menuItemId === MENU_AMPLIAR) return ampliarImagem(info.srcUrl, aba);
-  if (info.menuItemId === MENU_LER_IMAGEM) return lerTextoDaImagem(info.srcUrl, aba);
+  const id = info.menuItemId;
 
-  const destino = DESTINOS_BUSCA[info.menuItemId];
-  if (destino) return abrirBusca(destino, info.selectionText);
+  if (id === MENU_AMPLIAR) return ampliarImagem(info.srcUrl, aba);
+  if (id === MENU_LER_IMAGEM) return lerTextoDaImagem(info.srcUrl, aba);
 
-  const codigo = limparCodigo(info.selectionText);
-  if (info.menuItemId === MENU_SOLICITACAO) abrirSolicitacao(codigo);
-  else if (info.menuItemId === MENU_AR) abrirAR(codigo);
+  const loja = LOJAS_BUSCA.find((item) => item.id === id);
+  if (loja) return abrirBusca(loja, info.selectionText);
+
+  const site = SITES_BUSCA.find((item) => item.id === id);
+  if (!site) return;
+
+  // o código da solicitação vem às vezes em duas partes; as outras buscas
+  // recebem a seleção inteira, que é nome, CPF/CNPJ ou voucher
+  if (site.acao === "solicitacao") return abrirSolicitacao(limparCodigo(info.selectionText));
+  if (site.acao === "ar") return abrirAR(limparCodigo(info.selectionText));
+  return abrirBusca({ aba: site.aba, escopo: "" }, info.selectionText);
 });
 
 async function abrirBusca(destino, selecao) {
@@ -536,6 +578,125 @@ chrome.runtime.onMessage.addListener((mensagem, remetente, responder) => {
     abrirAR(limparCodigo(mensagem.codigo)).then(responder).catch(e => responder({ erro: e.message || String(e) }));
     return true;
   }
+});
+
+
+/* ==================================================================
+   Andamento da solicitação (aba "Andamento" do popup)
+   Reúne, na AR dona do código, o que a página de andamento mostra:
+   o resumo do grid de busca, o HTML do andamento e os três grids/consultas
+   que a página carrega por AJAX (histórico, pessoas envolvidas, documentos
+   anexos). Tudo roda com a sessão que o atendente já tem no navegador
+   (credentials: "include"); nada é guardado aqui.
+
+   O service worker não tem DOMParser, então devolve o HTML cru e o popup
+   faz a leitura (src/common/andamento-parser.js).
+   ================================================================== */
+const ANDAMENTO_TIMEOUT_MS = 25000;
+const ANDAMENTO_GRID_LINHAS = 100;
+
+async function buscarNaAr(url, opcoes = {}) {
+  const controle = new AbortController();
+  const timer = setTimeout(() => controle.abort(), ANDAMENTO_TIMEOUT_MS);
+  try {
+    const resposta = await fetch(url, { credentials: "include", signal: controle.signal, ...opcoes });
+    const texto = await resposta.text();
+    return { status: resposta.status, texto };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function lerJsonDaAr(texto) {
+  let t = (texto || "").trim();
+  const comentado = t.match(/^\/\*([\s\S]*)\*\/$/); // dojo às vezes embrulha em /* */
+  if (comentado) t = comentado[1].trim();
+  try { return JSON.parse(t); } catch { return undefined; }
+}
+
+async function consultarAndamento(codigo, idEscolhido) {
+  if (!codigo) return { erro: "Digite o código da solicitação." };
+
+  let subdominio;
+  try {
+    const json = await consultarUrls(codigo);
+    subdominio = json?.data?.ar_subdomain;
+  } catch (erro) {
+    return { erro: "Não foi possível descobrir a AR desse código. Confira o código e a conexão." };
+  }
+  if (!subdominio) return { erro: "Subdomínio não encontrado para esse código." };
+
+  const base = `https://${subdominio}.acsoluti.com.br`;
+  const loginUrl = `${base}/auth/precertdig`;
+
+  const filtros = encodeURIComponent(JSON.stringify({ codigo, idCDsolicitacao: "" }));
+  let grid;
+  try {
+    grid = await buscarNaAr(`${base}/certdig/gridlocalizar?filtros=${filtros}`);
+  } catch (erro) {
+    return { erro: `Sem resposta da AR (${subdominio}). Tente de novo em instantes.`, subdominio };
+  }
+
+  const gridJson = lerJsonDaAr(grid.texto);
+  // Sem sessão a AR devolve a página de login (HTML) em vez do JSON do grid.
+  if (gridJson === undefined) return { sessaoExpirada: true, subdominio, loginUrl };
+
+  // o grid pode trazer posições vazias (null) no meio da lista: descartar
+  const itens = Array.isArray(gridJson?.items)
+    ? gridJson.items.filter((i) => i && typeof i === "object")
+    : null;
+  if (!itens) return { erro: "A AR respondeu em um formato inesperado.", subdominio };
+  if (!itens.length) return { erro: `Nenhuma solicitação com esse código na AR ${subdominio}.`, subdominio };
+
+  const id = String(idEscolhido || itens[0].idCDsolicitacao || "");
+  if (!id) return { erro: "A AR não informou o número interno da solicitação.", subdominio };
+
+  const url = (caminho) => `${base}${caminho}`;
+  const ajax = {
+    accept: "*/*",
+    "content-type": "application/x-www-form-urlencoded",
+    "x-requested-with": "XMLHttpRequest"
+  };
+  const parametros = `idsolicitacao=${encodeURIComponent(id)}&start=0&count=${ANDAMENTO_GRID_LINHAS}`;
+
+  const [andamento, historico, pessoas, documentos] = await Promise.allSettled([
+    buscarNaAr(url(`/certdig/andamento/id/${encodeURIComponent(id)}`)),
+    buscarNaAr(url(`/certdig/gridhistorico?${parametros}`), { headers: ajax }),
+    buscarNaAr(url(`/certdig/gridpessoasenvolvidas?${parametros}`), { headers: ajax }),
+    buscarNaAr(url(`/certdig/valida-documentos-anexos/id/${encodeURIComponent(id)}`), {
+      method: "POST",
+      headers: { ...ajax, accept: "application/json, text/javascript, */*; q=0.01" },
+      body: "json=true"
+    })
+  ]);
+
+  const pegar = (r, comoJson) => {
+    if (r.status !== "fulfilled") return { erro: "Sem resposta." };
+    if (r.value.status >= 400) return { erro: `A AR respondeu ${r.value.status}.` };
+    if (!comoJson) return { texto: r.value.texto };
+    const json = lerJsonDaAr(r.value.texto);
+    return json === undefined ? { erro: "Resposta não reconhecida (sessão expirada?)." } : { json };
+  };
+
+  return {
+    ok: true,
+    subdominio,
+    id,
+    urlAndamento: url(`/certdig/andamento/id/${encodeURIComponent(id)}`),
+    itens,
+    andamento: pegar(andamento, false),
+    historico: pegar(historico, true),
+    pessoas: pegar(pessoas, true),
+    documentos: pegar(documentos, true)
+  };
+}
+
+chrome.runtime.onMessage.addListener((mensagem, remetente, responder) => {
+  if (mensagem?.tipo !== "consultarAndamento") return;
+  consultarAndamento(limparCodigo(mensagem.codigo), mensagem.id)
+    .then(responder)
+    .catch((e) => responder({ erro: e.message || String(e) }));
+  return true;
 });
 
 
@@ -758,16 +919,10 @@ async function buscarVoucherSDeal(numeroVoucher) {
       }
     }
 
-    // --- LOG DE DEPURAÇÃO (S.Deal) ---
-    // Aparece no console do SERVICE WORKER, não no console do popup:
-    // chrome://extensions > modo desenvolvedor ligado > card "Apoio Soluti"
-    // > link "service worker" (ele some se ficar muito tempo sem uso; para
-    // reativar, faça uma busca de novo com o link já aberto).
-    console.log(`[ApoioSoluti][S.Deal] ${Object.keys(dados).length} campo(s) extraído(s) do response.`);
-    console.log("[ApoioSoluti][S.Deal] dados completos:", dados);
-    if (dados.codSolicitacao) {
-      console.log("[ApoioSoluti][S.Deal] codSolicitacao capturado:", dados.codSolicitacao);
-    } else {
+    // Nada de console.log com `dados` aqui: a resposta do S.Deal traz nome
+    // do cliente e voucher, e o console do service worker fica aberto a
+    // quem olhar a tela. O aviso abaixo não mostra dado nenhum.
+    if (!dados.codSolicitacao) {
       // Não achou "d.c_818716.setValue(...)" no texto. Ou o voucher não
       // está "já utilizado" (aí o S.Deal realmente não manda esse dado),
       // ou o ID do componente "c_818716" mudou nesse ambiente/sessão.
@@ -800,7 +955,7 @@ chrome.runtime.onMessage.addListener((mensagem, remetente, responder) => {
 });
 
 /* ==================================================================
-   Gerenciador Central de Tokens de Sessão (Gestão+ e Wings)
+   Gerenciador Central de Tokens de Sessão (Gestão Online e Wings)
    ================================================================== */
 
 /* Blinda qualquer promessa que possa travar pra sempre (ex: uma aba
@@ -921,7 +1076,7 @@ async function obterTokenDaSessaoOuAba(origemUrl, urlInicial, storageKey) {
 
 
 /* ==================================================================
-   Gestão+ (solutivd.gestao.plus)
+   Gestão Online (solutivd.gestao.plus)
    ================================================================== */
 const GESTAO_ORIGEM = "https://solutivd.gestao.plus";
 const GESTAO_URL_INICIAL = `${GESTAO_ORIGEM}/ui/manager`;
@@ -977,8 +1132,8 @@ async function buscarHistoricoGestaoPlus(cpfCnpj) {
     const movimentacoes = extrairListaGestao(jsonMov);
     return { ok: true, parceiro, movimentacoes, bruto: !movimentacoes.length ? JSON.stringify(jsonMov).slice(0, 4000) : undefined };
   } catch (erro) {
-    if (erro.message === "TOKEN_NAO_ENCONTRADO") return { erro: "Sessão não encontrada no Gestão+. Faça login no site." };
-    return { erro: `Falha no Gestão+ (${erro.message}).` };
+    if (erro.message === "TOKEN_NAO_ENCONTRADO") return { erro: "Sessão não encontrada no Gestão Online. Faça login no site." };
+    return { erro: `Falha no Gestão Online (${erro.message}).` };
   }
 }
 
@@ -997,7 +1152,7 @@ async function buscarPedidoGestaoPlus(movimentacaoId) {
 
     return { ok: true, pedido, itens, historico };
   } catch (erro) {
-    if (erro.message === "TOKEN_NAO_ENCONTRADO") return { erro: "Sessão não encontrada no Gestão+. Faça login no site." };
+    if (erro.message === "TOKEN_NAO_ENCONTRADO") return { erro: "Sessão não encontrada no Gestão Online. Faça login no site." };
     return { erro: `Falha ao buscar pedido (${erro.message}).` };
   }
 }
@@ -1014,7 +1169,7 @@ async function buscarPedidoPorCodigoGestaoPlus(codigo) {
     if (!movimentacoes.length) return { erro: "Nenhum pedido encontrado com esse número.", movimentacoes: [] };
     return { ok: true, movimentacoes };
   } catch (erro) {
-    if (erro.message === "TOKEN_NAO_ENCONTRADO") return { erro: "Sessão não encontrada no Gestão+. Faça login no site." };
+    if (erro.message === "TOKEN_NAO_ENCONTRADO") return { erro: "Sessão não encontrada no Gestão Online. Faça login no site." };
     return { erro: `Falha ao buscar por código (${erro.message}).` };
   }
 }

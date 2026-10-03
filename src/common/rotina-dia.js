@@ -9,10 +9,14 @@
 // A LISTA É UMA SÓ, misturando duas origens:
 //
 //   - os sistemas de src/dados/sistemas.js, que o resto da extensão também
-//     usa para buscar (Gestão+, Wings...) e que por isso NÃO podem ser
-//     apagados aqui, só desmarcados;
-//   - os endereços que o atendente acrescenta, que são dele e sai quando
-//     quiser.
+//     usa para buscar (Gestão Online, Wings...);
+//   - os endereços que o atendente acrescenta.
+//
+// Os dois saem da lista, mas de jeitos diferentes: o endereço acrescentado
+// é apagado, e o sistema da tabela fica guardado com `removido: true`. Ele
+// PRECISA continuar no array — é a presença dele que faz
+// juntarComATabela() não o trazer de volta na próxima leitura. Por isso
+// também existe o restaurar: nenhuma remoção aqui é definitiva.
 //
 // A ordem é a ordem do array. Item novo na tabela entra no fim, ligado ou
 // não conforme o `naRotina` dele — assim acrescentar um sistema no código
@@ -30,6 +34,30 @@ function gerarIdExtra() {
 
 function ehItemExtra(item) {
   return Boolean(item?.url);
+}
+
+function ehItemRemovido(item) {
+  return Boolean(item?.removido);
+}
+
+// Tira um item da lista. O endereço acrescentado some; o sistema da tabela
+// fica marcado e desligado, porque apagá-lo de verdade só faria
+// juntarComATabela() ressuscitá-lo — ligado, ainda por cima.
+function removerDaRotina(itens, id) {
+  return itens
+    .filter((item) => item.id !== id || !ehItemExtra(item))
+    .map((item) =>
+      item.id === id ? { ...item, removido: true, ligado: false } : item
+    );
+}
+
+// Devolve os sistemas da tabela que o atendente tirou. Os endereços dele
+// não voltam: foram apagados, e inventar de volta um que ele apagou de
+// propósito seria pior do que não ter o botão.
+function restaurarPadroesDaRotina(itens) {
+  return itens.map((item) =>
+    ehItemRemovido(item) ? { ...item, removido: false, ligado: true } : item
+  );
 }
 
 // Sem esquema o navegador trataria "soluti.com.br" como caminho relativo.
@@ -94,7 +122,12 @@ function sistemaDoItem(item) {
 function juntarComATabela(salvos) {
   const itens = (Array.isArray(salvos) ? salvos : [])
     .filter((item) => ehItemExtra(item) || sistemaPorId(item.id))
-    .map((item) => ({ ...item, ligado: item.ligado !== false }));
+    .map((item) => ({
+      ...item,
+      // o background abre tudo que estiver ligado e não sabe de `removido`:
+      // a garantia de que um removido não abre mora aqui
+      ligado: item.ligado !== false && !ehItemRemovido(item)
+    }));
 
   const presentes = new Set(itens.map((item) => item.id));
 

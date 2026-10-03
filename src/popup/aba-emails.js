@@ -2,6 +2,11 @@ const EMAILS_EQUIPE = window.EMAILS_EQUIPE || [];
 
 let meusModelos = [];
 
+// ids de modelos da equipe que a pessoa excluiu (ver ApoioEmails.lerOcultos).
+// Mesma ideia dos macros da equipe: o modelo mora no codigo e nao se apaga,
+// so sai de vista — e volta pelo "Restaurar" no fim da lista.
+let modelosOcultos = [];
+
 function normalizarModelos(lista) {
   let precisaSalvar = false;
 
@@ -38,6 +43,9 @@ function modelosDaEquipe() {
       // modelo pessoal com o mesmo nome tem prioridade no envio
       substituido: usados.has(String(item.nome).toLowerCase())
     }))
+    // filtrar aqui, e nao so na hora de desenhar, e o que tira o modelo
+    // excluido tambem do seletor de envio: os dois saem desta funcao
+    .filter((modelo) => !modelosOcultos.includes(modelo.id))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
@@ -46,10 +54,14 @@ function meusModelosOrdenados() {
 }
 
 async function carregarModelosEmail() {
-  const guardados = await window.ApoioEmails.ler();
+  const [guardados, ocultos] = await Promise.all([
+    window.ApoioEmails.ler(),
+    window.ApoioEmails.lerOcultos()
+  ]);
   const { normalizados, precisaSalvar } = normalizarModelos(guardados);
 
   meusModelos = normalizados;
+  modelosOcultos = ocultos;
 
   // recupera bases antigas gravadas sem id
   if (precisaSalvar) await salvarModelosEmail();
@@ -489,15 +501,21 @@ async function salvarFormularioModelo() {
 }
 
 async function excluirModelo(id) {
-  const modelo = meusModelos.find((item) => item.id === id);
+  const meu = meusModelos.find((item) => item.id === id);
+  const daEquipe = !meu && modelosDaEquipe().find((item) => item.id === id);
+  const modelo = meu || daEquipe;
 
   if (!modelo) return;
-
   if (!confirm(`Excluir o modelo "${modelo.nome}"?`)) return;
 
-  meusModelos = meusModelos.filter((item) => item.id !== id);
+  if (meu) {
+    meusModelos = meusModelos.filter((item) => item.id !== id);
+    await salvarModelosEmail();
+  } else {
+    modelosOcultos = [...new Set([...modelosOcultos, id])];
+    await window.ApoioEmails.salvarOcultos(modelosOcultos);
+  }
 
-  await salvarModelosEmail();
   renderizarModelosEmail();
 }
 
@@ -572,14 +590,19 @@ function criarItemModelo(modelo) {
     )
   );
 
-  if (!daEquipe) {
-    botoes.appendChild(
-      criarBotaoIcone("excluir", "Excluir", ICONE_LIXEIRA, (evento) => {
+  // o da equipe tambem sai: o original fica no codigo e so some de vista,
+  // entao o "Restaurar" no fim da lista traz todos de volta
+  botoes.appendChild(
+    criarBotaoIcone(
+      "excluir",
+      daEquipe ? "Excluir (dá para restaurar)" : "Excluir",
+      ICONE_LIXEIRA,
+      (evento) => {
         evento.stopPropagation();
         excluirModelo(modelo.id);
-      })
-    );
-  }
+      }
+    )
+  );
 
   item.appendChild(botoes);
 
@@ -611,6 +634,10 @@ function renderizarModelosEmail() {
     vazio.textContent =
       "Nenhum modelo cadastrado. Clique em Criar modelo para começar.";
     lista.appendChild(vazio);
+
+    // quem escondeu TODOS os da equipe e nao tem os seus cai aqui: sem
+    // isto, a lista ficaria vazia e sem como desfazer
+    renderizarAvisoModelosOcultos(lista);
     return;
   }
 
@@ -623,7 +650,45 @@ function renderizarModelosEmail() {
     lista.appendChild(criarCabecalhoGrupo("Da equipe"));
     equipe.forEach((modelo) => lista.appendChild(criarItemModelo(modelo)));
   }
+
+  renderizarAvisoModelosOcultos(lista);
 }
+
+// Sem esta linha um modelo da equipe excluido sumiria sem deixar rastro, e
+// nao haveria como trazer de volta.
+function renderizarAvisoModelosOcultos(lista) {
+  const existentes = new Set(
+    EMAILS_EQUIPE.filter((item) => item && item.nome && item.corpo)
+      .map((item) => item.id || `equipe-${item.nome}`)
+  );
+  const n = modelosOcultos.filter((id) => existentes.has(id)).length;
+  if (!n) return;
+
+  const linha = document.createElement("li");
+  linha.className = "lista-vazia ocultos-aviso";
+  linha.appendChild(
+    document.createTextNode(`${n} modelo(s) da equipe oculto(s). `)
+  );
+
+  const botao = document.createElement("button");
+  botao.type = "button";
+  botao.className = "link-btn";
+  botao.textContent = "Restaurar";
+  botao.addEventListener("click", async () => {
+    if (!confirm(`Restaurar os ${n} modelos da equipe ocultos?`)) return;
+    modelosOcultos = [];
+    await window.ApoioEmails.salvarOcultos([]);
+    renderizarModelosEmail();
+  });
+  linha.appendChild(botao);
+  lista.appendChild(linha);
+}
+
+// outra janela do popup, ou o sync, mexeu na lista de ocultos
+window.ApoioEmails.aoMudarOcultos((ids) => {
+  modelosOcultos = ids;
+  renderizarModelosEmail();
+});
 
 $("novoModeloBtn").addEventListener("click", () => abrirFormularioModelo());
 $("cancelarModeloBtn").addEventListener("click", fecharFormularioModelo);

@@ -145,6 +145,181 @@
   box-sizing: border-box;
 }
 
+/* CORES DE ACENTO ------------------------------------------------------
+   Claro e escuro mandam no FUNDO. Estas cores mexem so no resto: o verde
+   da marca, as bordas e os realces viram outra familia, e a tela continua
+   clara ou escura conforme o modo.
+
+   Os nomes --verde-* vem de quando so havia a cor da marca; aqui valem
+   como "a cor de acento em vigor" — com data-cor="rosa", --verde-solido e
+   rosa. Renomear os dez tokens em 2000 linhas de CSS era mais risco do que
+   ganho, entao fica esta nota.
+
+   Cada cor repete o mesmo trio de regras dos tokens base: a versao clara,
+   a escura dentro do @media (para quem nao escolheu modo e esta no escuro
+   do sistema) e a escura explicita, nessa ordem — e e a ordem que resolve,
+   porque a ultima regra que casa e a que vale.
+
+   Os tons de apoio sao misturas da cor com a superficie do modo, para o
+   realce nunca brigar com o fundo. Contraste conferido nos dois modos:
+   >= 4.5:1 de texto sobre realce.
+   -------------------------------------------------------------------- */
+
+:root[data-cor="creme"] {
+  --verde: #8a5f16;
+  --verde-solido: #8a5f16;
+  --verde-solido-hover: #6d4a10;
+  --verde-escuro: #6d4a10;
+  --verde-claro: #ece5da;
+  --verde-borda: #d3c2a6;
+  --verde-hover: #f7f4ef;
+  --verde-selecao: #e8dfd0;
+  --verde-cartao: #faf9f6;
+  --verde-acao: #f0eae1;
+}
+
+:root[data-cor="oceano"] {
+  --verde: #0d6b86;
+  --verde-solido: #0d6b86;
+  --verde-solido-hover: #0a5468;
+  --verde-escuro: #0a5468;
+  --verde-claro: #d8e7ec;
+  --verde-borda: #a3c7d1;
+  --verde-hover: #eef5f7;
+  --verde-selecao: #cfe1e7;
+  --verde-cartao: #f5f9fa;
+  --verde-acao: #e0ecef;
+}
+
+:root[data-cor="rosa"] {
+  --verde: #a62457;
+  --verde-solido: #a62457;
+  --verde-solido-hover: #851a45;
+  --verde-escuro: #851a45;
+  --verde-claro: #f1dce4;
+  --verde-borda: #ddacbf;
+  --verde-hover: #f9f0f3;
+  --verde-selecao: #edd3dd;
+  --verde-cartao: #fbf6f8;
+  --verde-acao: #f3e3e9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-cor="creme"]:not([data-tema="claro"]) {
+    --verde: #dcae63;
+    --verde-solido: #dcae63;
+    --verde-solido-hover: #eabe77;
+    --verde-escuro: #eabe77;
+    --verde-claro: #3e3c33;
+    --verde-borda: #6a5c40;
+    --verde-hover: #393831;
+    --verde-selecao: #484336;
+    --verde-cartao: #2f312e;
+    --verde-acao: #423f34;
+  }
+
+  :root[data-cor="oceano"]:not([data-tema="claro"]) {
+    --verde: #5bb8d6;
+    --verde-solido: #5bb8d6;
+    --verde-solido-hover: #77c8e0;
+    --verde-escuro: #77c8e0;
+    --verde-claro: #283e46;
+    --verde-borda: #36606e;
+    --verde-hover: #273a41;
+    --verde-selecao: #2b454f;
+    --verde-cartao: #233239;
+    --verde-acao: #2a414a;
+  }
+
+  :root[data-cor="rosa"]:not([data-tema="claro"]) {
+    --verde: #ea8cb2;
+    --verde-solido: #ea8cb2;
+    --verde-solido-hover: #f0a3c3;
+    --verde-escuro: #f0a3c3;
+    --verde-claro: #413740;
+    --verde-borda: #704e60;
+    --verde-hover: #3b333c;
+    --verde-selecao: #4b3c47;
+    --verde-cartao: #302e35;
+    --verde-acao: #453943;
+  }
+
+}
+
+:root[data-cor="creme"][data-tema="escuro"] {
+  --verde: #dcae63;
+  --verde-solido: #dcae63;
+  --verde-solido-hover: #eabe77;
+  --verde-escuro: #eabe77;
+  --verde-claro: #3e3c33;
+  --verde-borda: #6a5c40;
+  --verde-hover: #393831;
+  --verde-selecao: #484336;
+  --verde-cartao: #2f312e;
+  --verde-acao: #423f34;
+}
+
+:root[data-cor="oceano"][data-tema="escuro"] {
+  --verde: #5bb8d6;
+  --verde-solido: #5bb8d6;
+  --verde-solido-hover: #77c8e0;
+  --verde-escuro: #77c8e0;
+  --verde-claro: #283e46;
+  --verde-borda: #36606e;
+  --verde-hover: #273a41;
+  --verde-selecao: #2b454f;
+  --verde-cartao: #233239;
+  --verde-acao: #2a414a;
+}
+
+:root[data-cor="rosa"][data-tema="escuro"] {
+  --verde: #ea8cb2;
+  --verde-solido: #ea8cb2;
+  --verde-solido-hover: #f0a3c3;
+  --verde-escuro: #f0a3c3;
+  --verde-claro: #413740;
+  --verde-borda: #704e60;
+  --verde-hover: #3b333c;
+  --verde-selecao: #4b3c47;
+  --verde-cartao: #302e35;
+  --verde-acao: #453943;
+}
+/* Barra de rolagem fina, em todo lugar que rola (menu lateral, painéis,
+   listas, textareas). Sem isto vale a do sistema: no Windows ela tem 15px
+   de largura, trilho branco e setas nas pontas — num menu de 56px isso come
+   um quarto da largura e destoa de todo o resto da interface.
+
+   Só a sintaxe -webkit-, e não `scrollbar-width: thin`: no Chromium as duas
+   não convivem — declarar `scrollbar-width` ou `scrollbar-color` faz ele
+   IGNORAR as regras ::-webkit-scrollbar. E a versão curta só afina a barra:
+   as setas continuam lá. Esta extensão é Chromium (MV3, chrome.*, offscreen),
+   então vale a que dá o resultado melhor. */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--texto-fraco);
+  /* a borda transparente afina o polegar sem estreitar a área de clique */
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--texto-suave);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 body {
   display: flex;
   flex-direction: column;
@@ -664,8 +839,12 @@ textarea {
   align-items: center;
   flex-shrink: 0;
   width: 56px;
-  padding: 10px 8px;
-  gap: 4px;
+  padding: 8px 8px 4px;
+  /* gap 0, e nao 4px: o espaco entre os grupos ja vem do margin-top deles
+     (e o do botao de recolher, do margin-bottom dele). Com os dois, cada
+     uma das 4 divisorias contava duas vezes — eram os 16px que faltavam
+     para as 14 abas caberem sem rolagem. */
+  gap: 0;
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--superficie);
@@ -680,7 +859,7 @@ textarea {
   flex-shrink: 0;
   width: 36px;
   height: 32px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: var(--texto-suave);
   background: transparent;
   border: 0;
@@ -703,9 +882,9 @@ textarea {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 3px;
-  padding-top: 8px;
-  margin-top: 8px;
+  gap: 2px;
+  padding-top: 5px;
+  margin-top: 5px;
   border-top: 1px solid var(--borda-fraca);
 }
 
@@ -736,7 +915,9 @@ textarea {
   width: 40px;
   min-width: 0;
   gap: 10px;
-  padding: 9px 0;
+  /* 6px e nao 9: sao 14 abas em 4 grupos, e com 9px as ultimas (S.Deal,
+     Solicitacao, Sobre) ficavam abaixo da dobra dos 580px do popup */
+  padding: 6px 0;
   color: var(--texto-suave);
   background: transparent;
   border: 0;
@@ -848,8 +1029,7 @@ html.barra-expandida .aba-nome {
   text-align: left;
 }
 
-/* Alternador de tema. O icone mostra o tema para o qual o clique leva,
-   e quem decide qual aparecer e o mesmo trio de regras dos tokens. */
+/* Botao que abre o seletor de tema (o menu dele fica mais abaixo). */
 
 .tema-btn {
   display: flex;
@@ -884,18 +1064,6 @@ html.barra-expandida .aba-nome {
   height: 16px;
 }
 
-/* claro em vigor: mostra a lua, porque o clique leva ao escuro */
-.tema-btn .sol { display: none; }
-.tema-btn .lua { display: block; }
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) .tema-btn .lua { display: none; }
-  :root:not([data-tema="claro"]) .tema-btn .sol { display: block; }
-}
-
-:root[data-tema="escuro"] .tema-btn .lua { display: none; }
-:root[data-tema="escuro"] .tema-btn .sol { display: block; }
-
 /* Paineis */
 
 .painel {
@@ -910,7 +1078,8 @@ html.barra-expandida .aba-nome {
 #painel-sdeal,
 #painel-gestao,
 #painel-wings,
-#painel-databricks {
+#painel-databricks,
+#painel-solicitacao {
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -938,6 +1107,152 @@ html.modo-janela #resultadoDatabricks {
   color: var(--texto-rotulo);
   font-size: 12.5px;
   line-height: 1.5;
+}
+
+/* Aba Bem-vindo: um bloco por grupo da barra lateral, com a mesma ordem
+   e os mesmos nomes — a tela serve de legenda para o menu da esquerda. */
+.boas-vindas-grupos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.boas-vindas-grupo {
+  padding: 11px 13px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+}
+
+.boas-vindas-grupo h3 {
+  margin: 0 0 5px;
+  color: var(--verde);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.boas-vindas-grupo p {
+  margin: 0;
+  color: var(--texto-rotulo);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.boas-vindas-grupo b {
+  color: var(--texto);
+  font-weight: 600;
+}
+
+/* Aba Importar: uma linha por ferramenta, com os dois botões à direita.
+   A última ("Tudo junto") ganha a borda verde por ser a que resolve o caso
+   de mudar de máquina — as outras são recortes dela. */
+.backup-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.backup-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+}
+
+.backup-item-destaque {
+  border-color: var(--verde);
+}
+
+.backup-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.backup-texto h3 {
+  margin: 0 0 3px;
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.backup-texto p {
+  margin: 0;
+  color: var(--texto-rotulo);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.backup-botoes {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.backup-botoes button {
+  padding: 6px 11px;
+  font-size: 12px;
+}
+
+/* Aba Sobre */
+.sobre-bloco {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+}
+
+.sobre-bloco h3 {
+  margin: 0 0 8px;
+  color: var(--verde);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.sobre-bloco p {
+  margin: 0;
+  color: var(--texto-rotulo);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.sobre-creditos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sobre-creditos li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sobre-nome {
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sobre-papel {
+  color: var(--texto-suave);
+  font-size: 11.5px;
+}
+
+.sobre-convite {
+  border-color: var(--verde);
 }
 
 .ferramenta-linha {
@@ -1512,7 +1827,7 @@ html.modo-janela #resultadoDatabricks {
   background: var(--borda-fraca);
 }
 
-/* Histórico de buscas recentes (Solicitação, S.Deal, Gestão+, Wings) */
+/* Histórico de buscas recentes (Solicitação, S.Deal, Gestão Online, Wings) */
 
 .historico-lista {
   display: flex;
@@ -1574,7 +1889,7 @@ html.modo-janela #resultadoDatabricks {
   color: var(--vermelho);
 }
 
-/* Aba Gestão+ */
+/* Aba Gestão Online */
 
 .gestao-movimentacoes {
   display: flex;
@@ -1643,22 +1958,6 @@ html.modo-janela #resultadoDatabricks {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.copiar-ao-abrir-toggle {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--texto-suave);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  user-select: none;
-}
-
-.copiar-ao-abrir-toggle input {
-  margin: 0;
-  cursor: pointer;
 }
 
 .gestao-pedido-badges {
@@ -2672,4 +2971,254 @@ html.modo-janela .lista-parceiros {
 html.modo-janela .lista-parceiros .parceiro-vazio,
 html.modo-janela .lista-parceiros .parceiro-mais {
   grid-column: 1 / -1;
+}
+
+/* Alternador claro/escuro: o icone mostra o tema para o qual o clique
+   leva, e quem decide qual aparecer e o mesmo trio de regras dos tokens. */
+.tema-btn .sol { display: none; }
+.tema-btn .lua { display: block; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) .tema-btn .lua { display: none; }
+  :root:not([data-tema="claro"]) .tema-btn .sol { display: block; }
+}
+
+:root[data-tema="escuro"] .tema-btn .lua { display: none; }
+:root[data-tema="escuro"] .tema-btn .sol { display: block; }
+
+/* Seletor de cor de destaque -----------------------------------------
+   Fica ao lado do claro/escuro, com o mesmo botao, porque sao dois
+   eixos independentes: o modo manda no fundo, a cor manda no realce.
+   Quatro opcoes nao cabem num alternador, entao este abre um menu. */
+.cor-escolha {
+  position: relative;
+  display: flex;
+}
+
+/* O par .cor-menu.hidden e obrigatorio, nao redundante: a regra .hidden
+   global mora bem acima no arquivo, e sozinha ela perde para o display
+   deste bloco, que vem depois. Mesma pegadinha ja anotada no
+   .bloco-escopo. Sem isto o menu abre e nunca mais fecha. */
+.cor-menu.hidden {
+  display: none;
+}
+
+.cor-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 148px;
+  padding: 5px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(16, 24, 32, 0.18);
+}
+
+.cor-opcao {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  color: var(--texto-rotulo);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.cor-opcao:hover {
+  color: var(--texto);
+  background: var(--hover);
+}
+
+.cor-opcao-nome { flex: 1; }
+
+.cor-amostra {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--borda);
+}
+
+.cor-opcao-check {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--verde);
+  opacity: 0;
+}
+
+.cor-opcao[aria-checked="true"] {
+  color: var(--texto);
+  font-weight: 600;
+}
+
+.cor-opcao[aria-checked="true"] .cor-opcao-check { opacity: 1; }
+
+.cor-amostra-padrao { background: #0f7a3f; }
+.cor-amostra-creme { background: #8a5f16; }
+.cor-amostra-oceano { background: #0d6b86; }
+.cor-amostra-rosa { background: #a62457; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) .cor-amostra-padrao { background: #4fbd7f; }
+  :root:not([data-tema="claro"]) .cor-amostra-creme { background: #dcae63; }
+  :root:not([data-tema="claro"]) .cor-amostra-oceano { background: #5bb8d6; }
+  :root:not([data-tema="claro"]) .cor-amostra-rosa { background: #ea8cb2; }
+}
+
+:root[data-tema="escuro"] .cor-amostra-padrao { background: #4fbd7f; }
+:root[data-tema="escuro"] .cor-amostra-creme { background: #dcae63; }
+:root[data-tema="escuro"] .cor-amostra-oceano { background: #5bb8d6; }
+:root[data-tema="escuro"] .cor-amostra-rosa { background: #ea8cb2; }
+
+/* Na janela separada o botao de abrir a janela nao tem o que fazer. */
+html.modo-janela #abrirJanelaBtn {
+  display: none;
+}
+
+/* ============================================================
+   Aba Andamento: consulta da solicitação dentro da extensão.
+   Reaproveita o cartão recolhível do Databricks (databricks-card);
+   aqui só o que é específico: barra de topo, tabelas e texto cru.
+   ============================================================ */
+
+.and-barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0 8px;
+}
+
+.and-titulo {
+  color: var(--texto-medio);
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.and-barra-acoes {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.and-escolha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 8px;
+}
+
+.and-escolha.hidden {
+  display: none;
+}
+
+.and-escolha-item.ativo {
+  background: var(--verde-claro);
+  border-color: var(--verde-borda);
+  color: var(--verde-escuro);
+  font-weight: 700;
+}
+
+/* clicar no valor copia; o destaque rápido confirma */
+.and-valor {
+  cursor: copy;
+  user-select: text;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.and-valor:hover {
+  background: var(--verde-hover);
+}
+
+.and-valor.and-copiado {
+  background: var(--verde-selecao);
+}
+
+.and-tabela-wrap {
+  overflow-x: auto;
+  padding: 4px 8px 8px;
+}
+
+.and-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  text-align: left;
+}
+
+.and-tabela th,
+.and-tabela td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--borda-fraca);
+  vertical-align: top;
+  user-select: text;
+}
+
+.and-tabela th {
+  color: var(--texto-suave);
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--superficie-4);
+}
+
+.and-nota {
+  margin: 0;
+  padding: 6px 14px 8px;
+  color: var(--texto-suave);
+  font-size: 12px;
+  text-align: left;
+}
+
+.and-pre {
+  margin: 0;
+  padding: 8px 14px 10px;
+  max-height: 260px;
+  overflow: auto;
+  font: 11.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--texto-medio);
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+  user-select: text;
+}
+
+.and-cabecalho {
+  margin: 0 0 8px;
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  user-select: text;
+}
+
+.and-cabecalho.hidden {
+  display: none;
+}
+
+/* Aba Solicitação com a consulta aberta: o painel rola (regra acima) e os
+   blocos não encolhem para caber, senão os cartões ficam espremidos. */
+#painel-solicitacao > * {
+  flex-shrink: 0;
+}
+
+.and-abrir {
+  margin-top: 6px;
 }

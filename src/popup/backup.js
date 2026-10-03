@@ -1,21 +1,75 @@
-// Levar tudo para outro PC: um arquivo com os macros, os modelos de e-mail
-// e a rotina do dia.
+// Aba Importar: levar o que é seu para fora e trazer de volta.
 //
-// POR QUE ISTO EXISTE, se as três coisas já sincronizam sozinhas: o
-// chrome.storage.sync só viaja entre máquinas em que você está logado no
-// MESMO navegador. Máquina nova ainda sem login, outro navegador, perfil
-// corporativo que não permite entrar com conta, ou a máquina que vai ser
-// formatada amanhã — em todos esses casos o sync não leva nada, e um
-// arquivo leva.
+// POR QUE ISTO EXISTE, se macros, modelos e a lista do dia já sincronizam
+// sozinhos: o chrome.storage.sync só viaja entre máquinas em que você está
+// logado no MESMO navegador. Máquina nova ainda sem login, outro navegador,
+// perfil corporativo que não deixa entrar com conta, ou a máquina que vai
+// ser formatada amanhã — em todos esses casos o sync não leva nada, e um
+// arquivo leva. Passar um macro para um colega é o mesmo caso.
 //
-// Não é o mesmo que o "Exportar" da aba Macros. Aquele manda só os macros,
-// para dar a um colega; este é a mudança inteira.
+// UM FORMATO SÓ. O arquivo tem uma chave por ferramenta e o importador
+// aproveita as que encontrar. Então "exportar só os macros" é o mesmo
+// arquivo com uma chave preenchida, e importá-lo pelo "tudo junto"
+// funciona igual. É isso que deixa esta tela ser uma tabela, PARTES, em
+// vez de três pares de botões com três formatos quase iguais.
 //
-// Este arquivo não pertence à aba Começar, embora os botões fiquem no
-// painel dela: ele mexe em três coisas de abas diferentes, e nenhuma delas
-// tem a ver com começar o expediente.
+// O QUE NÃO ENTRA: macros, modelos e sistemas da equipe vêm no código da
+// extensão. Reexportá-los faria a importação criar cópias pessoais de
+// coisas que já existem sozinhas. Só o que é seu viaja — mais a lista do
+// que você escondeu, que também é escolha sua.
 
-const NOME_ARQUIVO_BACKUP = "apoio-soluti-backup";
+const NOME_ARQUIVO_BACKUP = "apoio-soluti";
+
+/* O que cada arquivo carrega ------------------------------------------
+   `juntar` monta o pedaço do JSON; `aplicar` devolve um resumo do que
+   entrou, ou "" quando o arquivo não tinha nada daquela parte.
+   -------------------------------------------------------------------- */
+const PARTES = {
+  sites: {
+    titulo: "Endereços da aba Começar",
+    descricao:
+      "A lista do \"Começar o dia\": os endereços que você acrescentou, a " +
+      "ordem e o que está desmarcado.",
+    arquivo: "enderecos",
+    juntar: async () => ({ rotinaDoDia: await lerRotina() }),
+    temAlgo: async () => (await lerRotina()).some(ehItemExtra),
+    reconhece: (json) => Boolean(rotinaValida(json)),
+    aplicar: aplicarRotina
+  },
+  macros: {
+    titulo: "Macros",
+    descricao: "Os comandos que você criou, com o texto de cada um.",
+    arquivo: "macros",
+    juntar: async () => ({
+      macros: (await window.ApoioMacros.ler()).map(({ comando, resposta }) => ({
+        comando,
+        resposta
+      })),
+      macrosEquipeOcultos: await window.ApoioMacros.lerOcultos()
+    }),
+    temAlgo: async () => (await window.ApoioMacros.ler()).length > 0,
+    reconhece: (json) =>
+      Boolean(extrairMacrosImportados(json)) || Array.isArray(json?.macrosEquipeOcultos),
+    aplicar: aplicarMacros
+  },
+  emails: {
+    titulo: "Modelos de e-mail",
+    descricao: "Os modelos que você criou, com assunto, corpo e Cco.",
+    arquivo: "modelos-email",
+    juntar: async () => ({
+      modelosEmail: (await window.ApoioEmails.ler()).map(
+        ({ nome, assunto, corpo, cco }) => ({ nome, assunto, corpo, cco })
+      ),
+      emailsEquipeOcultos: await window.ApoioEmails.lerOcultos()
+    }),
+    temAlgo: async () => (await window.ApoioEmails.ler()).length > 0,
+    reconhece: (json) =>
+      modelosValidos(json).length > 0 || Array.isArray(json?.emailsEquipeOcultos),
+    aplicar: aplicarModelos
+  }
+};
+
+const ORDEM_PARTES = ["sites", "macros", "emails"];
 
 /* Exportar ----------------------------------------------------------- */
 
@@ -33,54 +87,53 @@ function baixarJson(dados, prefixo) {
   URL.revokeObjectURL(url);
 }
 
-async function exportarTudo() {
+// `chaves` vazio significa todas: é assim que o "tudo junto" reusa o resto.
+async function exportar(chaves) {
   const aviso = $("avisoBackup");
+  const alvos = chaves.length ? chaves : ORDEM_PARTES;
 
   // lidos na hora, e não das variáveis da tela: a aba de macros pode nem
   // ter sido aberta nesta sessão do popup
-  const macros = await window.ApoioMacros.ler();
-  const modelos = await window.ApoioEmails.ler();
-  const rotina = await lerRotina();
-  const ocultos = await window.ApoioMacros.lerOcultos();
-
-  // só o que é seu. Os macros e modelos da equipe vêm no código da
-  // extensão, e os sistemas da tabela também: reexportá-los faria a
-  // importação criar cópias pessoais de coisas que já existem sozinhas.
-  const extras = rotina.filter(ehItemExtra);
-
-  if (!macros.length && !modelos.length && !extras.length && !ocultos.length) {
+  const temAlgum = await Promise.all(alvos.map((chave) => PARTES[chave].temAlgo()));
+  if (!temAlgum.some(Boolean)) {
     mostrarAviso(aviso, "Não há nada seu para exportar ainda.", "erro");
     return;
   }
 
-  baixarJson(
-    {
-      versao: chrome.runtime.getManifest().version,
-      exportadoEm: new Date().toISOString(),
-      macros: macros.map(({ comando, resposta }) => ({ comando, resposta })),
-      modelosEmail: modelos.map(({ nome, assunto, corpo, cco }) => ({
-        nome,
-        assunto,
-        corpo,
-        cco
-      })),
-      // a rotina inteira, e não só os extras: a ordem e o que está
-      // desmarcado também são escolha sua, e é isso que se quer de volta
-      rotinaDoDia: rotina,
-      // macros da equipe que voce excluiu (escondeu)
-      macrosEquipeOcultos: ocultos
-    },
-    NOME_ARQUIVO_BACKUP
-  );
+  const dados = {
+    versao: chrome.runtime.getManifest().version,
+    exportadoEm: new Date().toISOString()
+  };
+
+  for (const chave of alvos) {
+    Object.assign(dados, await PARTES[chave].juntar());
+  }
+
+  const sufixo = chaves.length === 1 ? PARTES[chaves[0]].arquivo : "backup";
+  baixarJson(dados, `${NOME_ARQUIVO_BACKUP}-${sufixo}`);
 
   mostrarAviso(
     aviso,
-    `Exportado: ${macros.length} macro(s), ${modelos.length} modelo(s), ${extras.length} endereço(s).`,
+    `Exportado: ${alvos.map((chave) => PARTES[chave].titulo.toLowerCase()).join(", ")}.`,
     "ok"
   );
 }
 
-/* Importar ------------------------------------------------------------ */
+/* Ler o arquivo ------------------------------------------------------- */
+
+function extrairMacrosImportados(json) {
+  const lista = Array.isArray(json) ? json : json?.macros;
+  if (!Array.isArray(lista)) return null;
+
+  return lista.filter(
+    (item) =>
+      item &&
+      typeof item.comando === "string" &&
+      item.comando.trim() &&
+      typeof item.resposta === "string" &&
+      item.resposta.trim()
+  );
+}
 
 function modelosValidos(json) {
   const lista = json?.modelosEmail;
@@ -114,19 +167,18 @@ function rotinaValida(json) {
     }
 
     if (sistemaPorId(item.id)) {
-      itens.push({ id: item.id, ligado: item.ligado !== false });
+      itens.push({ id: item.id, ligado: item.ligado !== false, removido: Boolean(item.removido) });
     }
   }
 
   return itens.length ? itens : null;
 }
 
-async function importarMacrosDoBackup(json) {
-  const importados = extrairMacrosImportados(json);
-  if (!importados?.length) return 0;
+/* Aplicar ------------------------------------------------------------- */
 
+async function aplicarMacros(json) {
+  const importados = extrairMacrosImportados(json) || [];
   const atuais = await window.ApoioMacros.ler();
-  let mexidos = 0;
 
   importados.forEach(({ comando, resposta }) => {
     const limpo = comando.trim();
@@ -136,20 +188,22 @@ async function importarMacrosDoBackup(json) {
 
     if (existente) existente.resposta = resposta.trim();
     else atuais.push({ id: gerarId(), comando: limpo, resposta: resposta.trim(), origem: "usuario" });
-
-    mexidos += 1;
   });
 
-  await window.ApoioMacros.salvar(atuais);
-  return mexidos;
+  if (importados.length) await window.ApoioMacros.salvar(atuais);
+
+  if (Array.isArray(json?.macrosEquipeOcultos)) {
+    const ocultos = await window.ApoioMacros.lerOcultos();
+    await window.ApoioMacros.salvarOcultos([...ocultos, ...json.macrosEquipeOcultos]);
+  }
+
+  await carregarMacros();
+  return importados.length ? `${importados.length} macro(s)` : "";
 }
 
-async function importarModelosDoBackup(json) {
+async function aplicarModelos(json) {
   const importados = modelosValidos(json);
-  if (!importados.length) return 0;
-
   const atuais = await window.ApoioEmails.ler();
-  let mexidos = 0;
 
   importados.forEach((item) => {
     const nome = item.nome.trim();
@@ -167,16 +221,40 @@ async function importarModelosDoBackup(json) {
 
     if (existente) Object.assign(existente, campos);
     else atuais.push({ id: gerarId(), ...campos, origem: "usuario" });
-
-    mexidos += 1;
   });
 
-  await window.ApoioEmails.salvar(atuais);
-  return mexidos;
+  if (importados.length) await window.ApoioEmails.salvar(atuais);
+
+  if (Array.isArray(json?.emailsEquipeOcultos)) {
+    const ocultos = await window.ApoioEmails.lerOcultos();
+    await window.ApoioEmails.salvarOcultos([...ocultos, ...json.emailsEquipeOcultos]);
+  }
+
+  await carregarModelosEmail();
+  return importados.length ? `${importados.length} modelo(s)` : "";
 }
 
-async function importarTudo(arquivo) {
+async function aplicarRotina(json) {
+  const rotina = rotinaValida(json);
+  if (!rotina) return "";
+
+  await salvarRotina(rotina);
+  await montarPainelDoDia();
+  return `${rotina.filter(ehItemExtra).length} endereço(s)`;
+}
+
+/* Importar ------------------------------------------------------------ */
+
+// A rotina é uma ORDEM, e ordem não se soma: ela substitui a que está aqui.
+// Macros e modelos de mesmo nome são atualizados, o resto é somado — isso
+// não apaga nada e não precisa de confirmação.
+const AVISO_SUBSTITUI =
+  "A lista de endereços da aba Começar vai ser substituída pela do arquivo.\n\n" +
+  "Continuar?";
+
+async function importar(chaves, arquivo) {
   const aviso = $("avisoBackup");
+  const alvos = chaves.length ? chaves : ORDEM_PARTES;
 
   let json;
   try {
@@ -186,85 +264,118 @@ async function importarTudo(arquivo) {
     return;
   }
 
-  const temMacros = Array.isArray(extrairMacrosImportados(json));
-  const rotina = rotinaValida(json);
+  const reconhecidas = alvos.filter((chave) => PARTES[chave].reconhece(json));
 
-  if (!temMacros && !modelosValidos(json).length && !rotina && !Array.isArray(json?.macrosEquipeOcultos)) {
-    mostrarAviso(aviso, "Arquivo inválido: não reconheci nada dentro dele.", "erro");
+  if (!reconhecidas.length) {
+    mostrarAviso(
+      aviso,
+      chaves.length
+        ? `Não achei ${PARTES[chaves[0]].titulo.toLowerCase()} neste arquivo.`
+        : "Arquivo inválido: não reconheci nada dentro dele.",
+      "erro"
+    );
     return;
   }
 
-  // Substituir sem avisar apaga o que a pessoa montou nesta máquina. O
-  // mesmo nome de macro/modelo é atualizado, o resto é somado — mas a
-  // rotina é uma ORDEM, e ordem não se soma: essa, sim, é substituída.
-  const vaiTrocarRotina = Boolean(rotina);
-  if (
-    vaiTrocarRotina &&
-    !confirm(
-      "A lista de endereços da aba Começar vai ser substituída pela do arquivo.\n\n" +
-      "Macros e modelos de e-mail são somados aos que já existem aqui (os de mesmo nome são atualizados).\n\n" +
-      "Continuar?"
-    )
-  ) {
-    return;
-  }
+  if (reconhecidas.includes("sites") && !confirm(AVISO_SUBSTITUI)) return;
 
   const partes = [];
 
   try {
-    const macros = await importarMacrosDoBackup(json);
-    if (macros) partes.push(`${macros} macro(s)`);
-
-    const modelos = await importarModelosDoBackup(json);
-    if (modelos) partes.push(`${modelos} modelo(s)`);
-
-    if (Array.isArray(json?.macrosEquipeOcultos)) {
-      const atuais = await window.ApoioMacros.lerOcultos();
-      await window.ApoioMacros.salvarOcultos([...atuais, ...json.macrosEquipeOcultos]);
-    }
-
-    if (rotina) {
-      await salvarRotina(rotina);
-      partes.push(`${rotina.filter(ehItemExtra).length} endereço(s)`);
+    for (const chave of reconhecidas) {
+      const resumo = await PARTES[chave].aplicar(json);
+      if (resumo) partes.push(resumo);
     }
   } catch (erro) {
     mostrarAviso(aviso, `Importação interrompida: ${erro.message}`, "erro");
     return;
   }
 
-  // as três telas precisam redesenhar: os dados mudaram por baixo delas
-  await carregarMacros();
-  await carregarModelosEmail();
-  await montarPainelDoDia();
-
-  mostrarAviso(aviso, `Importado: ${partes.join(", ")}.`, "ok");
+  mostrarAviso(
+    aviso,
+    partes.length ? `Importado: ${partes.join(", ")}.` : "Nada novo no arquivo.",
+    "ok"
+  );
 }
 
-// recolhido por padrão: ver src/popup/popup.html, no painel da aba Começar
-$("backupBtn").addEventListener("click", () => {
-  const bloco = $("blocoBackup");
-  const abrindo = bloco.classList.contains("hidden");
+/* A tela -------------------------------------------------------------- */
 
-  bloco.classList.toggle("hidden", !abrindo);
+// Um <input type="file"> por linha. Um só, reaproveitado, obrigaria a
+// guardar "para qual parte foi o último clique" entre dois eventos.
+function criarLinhaBackup({ titulo, descricao, chaves }) {
+  const linha = document.createElement("section");
+  linha.className = "backup-item";
 
-  // abrir um fecha o outro: os dois ficam no mesmo lugar, acima da lista
-  if (abrindo) fecharFormularioDia();
-});
+  const texto = document.createElement("div");
+  texto.className = "backup-texto";
 
-$("exportarTudoBtn").addEventListener("click", () => {
-  exportarTudo().catch((erro) => {
-    mostrarAviso($("avisoBackup"), `Não foi possível exportar: ${erro.message}`, "erro");
+  const nome = document.createElement("h3");
+  nome.textContent = titulo;
+
+  const detalhe = document.createElement("p");
+  detalhe.textContent = descricao;
+
+  texto.appendChild(nome);
+  texto.appendChild(detalhe);
+
+  const botoes = document.createElement("div");
+  botoes.className = "backup-botoes";
+
+  const exportarBtn = document.createElement("button");
+  exportarBtn.type = "button";
+  exportarBtn.className = "secondary";
+  exportarBtn.textContent = "Exportar";
+  exportarBtn.addEventListener("click", () => {
+    exportar(chaves).catch((erro) =>
+      mostrarAviso($("avisoBackup"), `Não foi possível exportar: ${erro.message}`, "erro")
+    );
   });
-});
 
-$("importarTudoBtn").addEventListener("click", () => {
-  $("importarTudoInput").click();
-});
+  const escolher = document.createElement("input");
+  escolher.type = "file";
+  escolher.accept = "application/json";
+  escolher.hidden = true;
+  escolher.addEventListener("change", async (evento) => {
+    const [arquivo] = evento.target.files;
+    // zerado antes de usar: sem isso, escolher o MESMO arquivo de novo não
+    // dispara o evento e a importação parece ter sido ignorada
+    evento.target.value = "";
+    if (arquivo) await importar(chaves, arquivo);
+  });
 
-$("importarTudoInput").addEventListener("change", async (evento) => {
-  const [arquivo] = evento.target.files;
-  // zerado antes de usar: sem isso, escolher o MESMO arquivo de novo não
-  // dispara o evento e a importação parece ter sido ignorada
-  evento.target.value = "";
-  if (arquivo) await importarTudo(arquivo);
-});
+  const importarBtn = document.createElement("button");
+  importarBtn.type = "button";
+  importarBtn.className = "secondary";
+  importarBtn.textContent = "Importar";
+  importarBtn.addEventListener("click", () => escolher.click());
+
+  botoes.appendChild(exportarBtn);
+  botoes.appendChild(importarBtn);
+  botoes.appendChild(escolher);
+
+  linha.appendChild(texto);
+  linha.appendChild(botoes);
+  return linha;
+}
+
+function montarPainelImportar() {
+  const lista = $("listaPartesBackup");
+  lista.innerHTML = "";
+
+  ORDEM_PARTES.forEach((chave) => {
+    const { titulo, descricao } = PARTES[chave];
+    lista.appendChild(criarLinhaBackup({ titulo, descricao, chaves: [chave] }));
+  });
+
+  const tudo = criarLinhaBackup({
+    titulo: "Tudo junto",
+    descricao:
+      "Um arquivo só, com as três coisas acima. É o que se leva para uma " +
+      "máquina nova.",
+    chaves: []
+  });
+  tudo.classList.add("backup-item-destaque");
+  lista.appendChild(tudo);
+}
+
+montarPainelImportar();

@@ -6,7 +6,7 @@
 //
 // Objetivo: pegar documento com dígito verificador errado ANTES de
 // disparar uma busca que nunca vai voltar com resultado (S.Deal,
-// Gestão+, Wings e Databricks todos dependem de CPF/CNPJ real).
+// Gestão Online, Wings e Databricks todos dependem de CPF/CNPJ real).
 
 if (!window.ApoioValidacao) {
   window.ApoioValidacao = (() => {
